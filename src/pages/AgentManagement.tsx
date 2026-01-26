@@ -1,0 +1,425 @@
+import { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  useAgents,
+  useCreateAgent,
+  useUpdateAgentPermissions,
+  useToggleAgentStatus,
+} from '@/hooks/useAgents';
+import {
+  UserPlus,
+  Search,
+  Power,
+  Settings2,
+  Target,
+  Percent,
+  UserPlus2,
+  RotateCcw,
+  Loader2,
+  MapPin,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const AgentManagement = () => {
+  const { language, isRTL } = useLanguage();
+  const { hasPermission } = useAuth();
+  const { data: agents, isLoading } = useAgents();
+  const createAgent = useCreateAgent();
+  const updatePermissions = useUpdateAgentPermissions();
+  const toggleStatus = useToggleAgentStatus();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newAgent, setNewAgent] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    monthly_target: 0,
+  });
+
+  const canManageAgents = hasPermission(['it_admin', 'sales_manager']);
+
+  const filteredAgents = agents?.filter(
+    (agent) =>
+      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      agent.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCreateAgent = async () => {
+    await createAgent.mutateAsync(newAgent);
+    setIsAddDialogOpen(false);
+    setNewAgent({ name: '', email: '', phone: '', monthly_target: 0 });
+  };
+
+  const handleTogglePermission = async (
+    agentId: string,
+    permission: 'can_give_discounts' | 'can_add_clients' | 'can_process_returns',
+    currentValue: boolean
+  ) => {
+    await updatePermissions.mutateAsync({
+      id: agentId,
+      [permission]: !currentValue,
+    });
+  };
+
+  const handleKillSwitch = async (agentId: string, currentStatus: boolean) => {
+    await toggleStatus.mutateAsync({ id: agentId, is_active: !currentStatus });
+  };
+
+  const getPerformanceColor = (current: number, target: number) => {
+    if (target === 0) return 'text-muted-foreground';
+    const percentage = (current / target) * 100;
+    if (percentage >= 100) return 'text-success';
+    if (percentage >= 75) return 'text-primary';
+    if (percentage >= 50) return 'text-warning';
+    return 'text-destructive';
+  };
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
+              {language === 'en' ? 'Agent Management' : 'إدارة المندوبين'}
+            </h1>
+            <p className="text-muted-foreground">
+              {language === 'en'
+                ? 'Manage field agents, permissions, and performance'
+                : 'إدارة المندوبين الميدانيين والصلاحيات والأداء'}
+            </p>
+          </div>
+
+          {canManageAgents && (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  {language === 'en' ? 'Add Agent' : 'إضافة مندوب'}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {language === 'en' ? 'Create New Agent' : 'إنشاء مندوب جديد'}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>{language === 'en' ? 'Name' : 'الاسم'}</Label>
+                    <Input
+                      value={newAgent.name}
+                      onChange={(e) =>
+                        setNewAgent({ ...newAgent, name: e.target.value })
+                      }
+                      placeholder={language === 'en' ? 'Agent name' : 'اسم المندوب'}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{language === 'en' ? 'Email' : 'البريد الإلكتروني'}</Label>
+                    <Input
+                      type="email"
+                      value={newAgent.email}
+                      onChange={(e) =>
+                        setNewAgent({ ...newAgent, email: e.target.value })
+                      }
+                      placeholder="agent@company.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{language === 'en' ? 'Phone' : 'الهاتف'}</Label>
+                    <Input
+                      value={newAgent.phone}
+                      onChange={(e) =>
+                        setNewAgent({ ...newAgent, phone: e.target.value })
+                      }
+                      placeholder="+966 50 XXX XXXX"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{language === 'en' ? 'Monthly Target (SAR)' : 'الهدف الشهري (ريال)'}</Label>
+                    <Input
+                      type="number"
+                      value={newAgent.monthly_target}
+                      onChange={(e) =>
+                        setNewAgent({
+                          ...newAgent,
+                          monthly_target: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                  <Button
+                    onClick={handleCreateAgent}
+                    className="w-full"
+                    disabled={createAgent.isPending}
+                  >
+                    {createAgent.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : language === 'en' ? (
+                      'Create Agent'
+                    ) : (
+                      'إنشاء المندوب'
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Total Agents' : 'إجمالي المندوبين'}
+                  </p>
+                  <p className="text-2xl font-bold">{agents?.length || 0}</p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <UserPlus className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Active' : 'نشط'}
+                  </p>
+                  <p className="text-2xl font-bold text-success">
+                    {agents?.filter((a) => a.is_active).length || 0}
+                  </p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
+                  <Power className="h-6 w-6 text-success" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Online Now' : 'متصل الآن'}
+                  </p>
+                  <p className="text-2xl font-bold text-info">
+                    {agents?.filter((a) => a.is_online).length || 0}
+                  </p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center">
+                  <MapPin className="h-6 w-6 text-info" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'en' ? 'Deactivated' : 'معطل'}
+                  </p>
+                  <p className="text-2xl font-bold text-destructive">
+                    {agents?.filter((a) => !a.is_active).length || 0}
+                  </p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <Power className="h-6 w-6 text-destructive" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className={cn(
+            "absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground",
+            isRTL ? "right-3" : "left-3"
+          )} />
+          <Input
+            placeholder={language === 'en' ? 'Search agents...' : 'البحث عن مندوب...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={cn("bg-card", isRTL ? "pr-10" : "pl-10")}
+          />
+        </div>
+
+        {/* Agents Table */}
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              {language === 'en' ? 'Agents & Permissions' : 'المندوبين والصلاحيات'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filteredAgents?.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {language === 'en' ? 'No agents found' : 'لا يوجد مندوبين'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{language === 'en' ? 'Agent' : 'المندوب'}</TableHead>
+                      <TableHead>{language === 'en' ? 'Status' : 'الحالة'}</TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Target className="h-4 w-4" />
+                          {language === 'en' ? 'Target' : 'الهدف'}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Percent className="h-4 w-4" />
+                          {language === 'en' ? 'Discounts' : 'الخصومات'}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <UserPlus2 className="h-4 w-4" />
+                          {language === 'en' ? 'Add Clients' : 'إضافة عملاء'}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <RotateCcw className="h-4 w-4" />
+                          {language === 'en' ? 'Returns' : 'المرتجعات'}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Power className="h-4 w-4" />
+                          {language === 'en' ? 'Kill Switch' : 'إيقاف'}
+                        </div>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAgents?.map((agent) => (
+                      <TableRow key={agent.id} className={!agent.is_active ? 'opacity-50' : ''}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{agent.name}</p>
+                            <p className="text-sm text-muted-foreground">{agent.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {agent.is_active ? (
+                              <>
+                                <span className={cn(
+                                  "h-2 w-2 rounded-full",
+                                  agent.is_online ? "bg-success animate-pulse" : "bg-muted-foreground"
+                                )} />
+                                <Badge variant={agent.is_online ? "default" : "secondary"}>
+                                  {agent.is_online
+                                    ? (language === 'en' ? 'Online' : 'متصل')
+                                    : (language === 'en' ? 'Offline' : 'غير متصل')}
+                                </Badge>
+                              </>
+                            ) : (
+                              <Badge variant="destructive">
+                                {language === 'en' ? 'Deactivated' : 'معطل'}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="space-y-1">
+                            <p className={cn("font-medium", getPerformanceColor(Number(agent.current_sales), Number(agent.monthly_target)))}>
+                              {Number(agent.current_sales).toLocaleString()} SAR
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              / {Number(agent.monthly_target).toLocaleString()} SAR
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Switch
+                            checked={agent.can_give_discounts}
+                            onCheckedChange={() =>
+                              handleTogglePermission(agent.id, 'can_give_discounts', agent.can_give_discounts)
+                            }
+                            disabled={!canManageAgents || !agent.is_active}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Switch
+                            checked={agent.can_add_clients}
+                            onCheckedChange={() =>
+                              handleTogglePermission(agent.id, 'can_add_clients', agent.can_add_clients)
+                            }
+                            disabled={!canManageAgents || !agent.is_active}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Switch
+                            checked={agent.can_process_returns}
+                            onCheckedChange={() =>
+                              handleTogglePermission(agent.id, 'can_process_returns', agent.can_process_returns)
+                            }
+                            disabled={!canManageAgents || !agent.is_active}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant={agent.is_active ? 'destructive' : 'default'}
+                            size="sm"
+                            onClick={() => handleKillSwitch(agent.id, agent.is_active)}
+                            disabled={!canManageAgents}
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+};
+
+export default AgentManagement;
