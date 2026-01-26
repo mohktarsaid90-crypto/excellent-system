@@ -5,6 +5,8 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { RecentOrders } from '@/components/dashboard/RecentOrders';
 import { RepPerformance } from '@/components/dashboard/RepPerformance';
 import { TopProducts } from '@/components/dashboard/TopProducts';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DollarSign,
   ShoppingCart,
@@ -16,56 +18,63 @@ import {
 
 const Dashboard = () => {
   const { t, language } = useLanguage();
+  const { data: stats, isLoading } = useDashboardStats();
 
-  const stats = [
+  const statCards = [
     {
       key: 'totalRevenue',
-      value: '245,890',
+      value: stats?.totalRevenue || 0,
       valuePrefix: '',
       valueSuffix: ` ${t('sar')}`,
       icon: DollarSign,
       trend: { value: 12.5, isPositive: true },
       subtitle: t('thisMonth'),
       variant: 'primary' as const,
+      format: true,
     },
     {
       key: 'totalSales',
-      value: '1,245',
+      value: stats?.totalSales || 0,
       icon: ShoppingCart,
       trend: { value: 8.2, isPositive: true },
       subtitle: t('thisMonth'),
       variant: 'default' as const,
+      format: true,
     },
     {
       key: 'totalCustomers',
-      value: '3,847',
+      value: stats?.totalCustomers || 0,
       icon: Users,
       trend: { value: 4.1, isPositive: true },
       subtitle: language === 'en' ? 'Active' : 'نشط',
       variant: 'default' as const,
+      format: true,
     },
     {
       key: 'totalProducts',
-      value: '486',
+      value: stats?.totalProducts || 0,
       icon: Package,
       trend: { value: 2.3, isPositive: true },
       subtitle: language === 'en' ? 'In stock' : 'متوفر',
       variant: 'default' as const,
+      format: false,
     },
     {
       key: 'activeReps',
-      value: '24',
+      value: stats?.activeReps || 0,
       icon: UserCheck,
       trend: { value: 0, isPositive: true },
       subtitle: language === 'en' ? 'Online now' : 'متصل الآن',
       variant: 'success' as const,
+      format: false,
     },
     {
       key: 'lowStock',
-      value: '12',
+      value: stats?.lowStockItems || 0,
       icon: AlertTriangle,
       subtitle: language === 'en' ? 'Items need attention' : 'تحتاج انتباه',
       variant: 'warning' as const,
+      format: false,
     },
   ];
 
@@ -87,17 +96,23 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {stats.map((stat) => (
-            <StatCard
-              key={stat.key}
-              title={t(stat.key)}
-              value={`${stat.valuePrefix || ''}${stat.value}${stat.valueSuffix || ''}`}
-              icon={stat.icon}
-              trend={stat.trend}
-              subtitle={stat.subtitle}
-              variant={stat.variant}
-            />
-          ))}
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded-xl" />
+            ))
+          ) : (
+            statCards.map((stat) => (
+              <StatCard
+                key={stat.key}
+                title={t(stat.key)}
+                value={`${stat.valuePrefix || ''}${stat.format ? stat.value.toLocaleString() : stat.value}${stat.valueSuffix || ''}`}
+                icon={stat.icon}
+                trend={stat.trend}
+                subtitle={stat.subtitle}
+                variant={stat.variant}
+              />
+            ))
+          )}
         </div>
 
         {/* Charts Row */}

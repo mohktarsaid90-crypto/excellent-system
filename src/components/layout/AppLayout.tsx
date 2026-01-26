@@ -17,19 +17,16 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className={cn(
-        "flex min-h-screen w-full bg-background",
-        isRTL && "flex-row-reverse"
-      )}>
+      <div 
+        className="flex min-h-screen w-full bg-background"
+        dir={isRTL ? 'rtl' : 'ltr'}
+      >
         <AppSidebar />
         
         <div className="flex flex-1 flex-col min-w-0">
           {/* Top Header */}
-          <header className={cn(
-            "sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6",
-            isRTL && "flex-row-reverse"
-          )}>
-            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6">
+            <div className="flex items-center gap-4">
               <SidebarTrigger className="lg:hidden">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
@@ -51,7 +48,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               </div>
             </div>
 
-            <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+            <div className="flex items-center gap-2">
               {/* Mobile Language Switcher */}
               <div className="md:hidden">
                 <LanguageSwitcher />
@@ -76,10 +73,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className={cn(
-            "flex-1 p-4 lg:p-6",
-            isRTL && "text-right"
-          )}>
+          <main className="flex-1 p-4 lg:p-6">
             <div className="animate-fade-in">
               {children}
             </div>
