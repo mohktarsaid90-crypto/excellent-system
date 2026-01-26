@@ -43,7 +43,7 @@ import { formatDate, formatCurrency } from '@/lib/export';
 import { cn } from '@/lib/utils';
 
 const Reconciliation = () => {
-  const { language } = useLanguage();
+  const { language, isRTL, t } = useLanguage();
   const { user, hasPermission } = useAuth();
   const { data: reconciliations, isLoading } = useReconciliations();
   const approveReconciliation = useApproveReconciliation();
@@ -124,7 +124,7 @@ const Reconciliation = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div className={cn(isRTL && "text-right")}>
           <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
             {language === 'en' ? 'End-of-Day Reconciliation' : 'تسوية نهاية اليوم (تفريغ)'}
           </h1>
@@ -139,10 +139,10 @@ const Reconciliation = () => {
         <div className="grid gap-4 sm:grid-cols-3">
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Total Collected' : 'إجمالي المحصل'}
+                    {t('cashCollected')}
                   </p>
                   <p className="text-2xl font-bold text-success">
                     {formatCurrency(stats.totalCollected)}
@@ -156,10 +156,10 @@ const Reconciliation = () => {
           </Card>
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Total Variance' : 'إجمالي الفرق'}
+                    {t('variance')}
                   </p>
                   <p className={cn(
                     "text-2xl font-bold",
@@ -176,8 +176,8 @@ const Reconciliation = () => {
           </Card>
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
                     {language === 'en' ? 'Pending Review' : 'في انتظار المراجعة'}
                   </p>
@@ -194,17 +194,17 @@ const Reconciliation = () => {
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-4">
+        <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder={language === 'en' ? 'Filter by status' : 'تصفية حسب الحالة'} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{language === 'en' ? 'All Status' : 'جميع الحالات'}</SelectItem>
-              <SelectItem value="pending">{language === 'en' ? 'Pending' : 'قيد الانتظار'}</SelectItem>
-              <SelectItem value="submitted">{language === 'en' ? 'Submitted' : 'مقدم'}</SelectItem>
-              <SelectItem value="approved">{language === 'en' ? 'Approved' : 'موافق عليه'}</SelectItem>
-              <SelectItem value="disputed">{language === 'en' ? 'Disputed' : 'متنازع عليه'}</SelectItem>
+              <SelectItem value="pending">{t('pending')}</SelectItem>
+              <SelectItem value="submitted">{t('submitted')}</SelectItem>
+              <SelectItem value="approved">{t('approved')}</SelectItem>
+              <SelectItem value="disputed">{t('disputed')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -212,7 +212,7 @@ const Reconciliation = () => {
         {/* Reconciliations Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <ClipboardCheck className="h-5 w-5" />
               {language === 'en' ? 'Reconciliation Records' : 'سجلات التسوية'}
             </CardTitle>
@@ -231,46 +231,46 @@ const Reconciliation = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{language === 'en' ? 'Agent' : 'المندوب'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Date' : 'التاريخ'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Status' : 'الحالة'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('agent')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('date')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{language === 'en' ? 'Status' : 'الحالة'}</TableHead>
                       <TableHead className="text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className={cn("flex items-center justify-center gap-1", isRTL && "flex-row-reverse")}>
                           <Package className="h-4 w-4" />
-                          {language === 'en' ? 'Loaded' : 'محمل'}
+                          {t('totalLoaded')}
                         </div>
                       </TableHead>
                       <TableHead className="text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className={cn("flex items-center justify-center gap-1", isRTL && "flex-row-reverse")}>
                           <DollarSign className="h-4 w-4" />
-                          {language === 'en' ? 'Sold' : 'مباع'}
+                          {t('totalSold')}
                         </div>
                       </TableHead>
                       <TableHead className="text-center">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className={cn("flex items-center justify-center gap-1", isRTL && "flex-row-reverse")}>
                           <RotateCcw className="h-4 w-4" />
-                          {language === 'en' ? 'Returned' : 'مرتجع'}
+                          {t('totalReturned')}
                         </div>
                       </TableHead>
                       <TableHead className="text-center">
-                        {language === 'en' ? 'Collected' : 'المحصل'}
+                        {t('cashCollected')}
                       </TableHead>
                       <TableHead className="text-center">
-                        {language === 'en' ? 'Variance' : 'الفرق'}
+                        {t('variance')}
                       </TableHead>
-                      <TableHead>{language === 'en' ? 'Actions' : 'الإجراءات'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredReconciliations?.map((rec) => (
                       <TableRow key={rec.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className={cn("font-medium", isRTL && "text-right")}>
                           {rec.agents?.name || '-'}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className={cn("text-sm text-muted-foreground", isRTL && "text-right")}>
                           {formatDate(rec.date, language)}
                         </TableCell>
-                        <TableCell>{getStatusBadge(rec.status)}</TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>{getStatusBadge(rec.status)}</TableCell>
                         <TableCell className="text-center">{rec.total_loaded}</TableCell>
                         <TableCell className="text-center text-success">{rec.total_sold}</TableCell>
                         <TableCell className="text-center text-warning">{rec.total_returned}</TableCell>
@@ -285,9 +285,9 @@ const Reconciliation = () => {
                             {formatCurrency(Number(rec.variance))}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>
                           {rec.status === 'submitted' && canManage && (
-                            <div className="flex items-center gap-2">
+                            <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse justify-end")}>
                               <Button
                                 size="sm"
                                 onClick={() => handleApprove(rec.id)}
@@ -296,16 +296,16 @@ const Reconciliation = () => {
                                 {approveReconciliation.isPending ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <CheckCircle2 className={cn("h-4 w-4", isRTL ? "ml-1" : "mr-1")} />
                                 )}
-                                {language === 'en' ? 'Approve' : 'موافقة'}
+                                {t('approve')}
                               </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => openDisputeDialog(rec.id)}
                               >
-                                <XCircle className="h-4 w-4 mr-1" />
+                                <XCircle className={cn("h-4 w-4", isRTL ? "ml-1" : "mr-1")} />
                                 {language === 'en' ? 'Dispute' : 'اعتراض'}
                               </Button>
                             </div>
@@ -322,9 +322,9 @@ const Reconciliation = () => {
 
         {/* Dispute Dialog */}
         <Dialog open={disputeDialogOpen} onOpenChange={setDisputeDialogOpen}>
-          <DialogContent>
+          <DialogContent className={cn(isRTL && "text-right")}>
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className={cn(isRTL && "text-right")}>
                 {language === 'en' ? 'Dispute Reconciliation' : 'الاعتراض على التسوية'}
               </DialogTitle>
             </DialogHeader>
@@ -334,10 +334,11 @@ const Reconciliation = () => {
                 value={disputeNotes}
                 onChange={(e) => setDisputeNotes(e.target.value)}
                 rows={4}
+                dir={isRTL ? 'rtl' : 'ltr'}
               />
-              <div className="flex gap-2 justify-end">
+              <div className={cn("flex gap-2", isRTL ? "justify-start" : "justify-end")}>
                 <Button variant="outline" onClick={() => setDisputeDialogOpen(false)}>
-                  {language === 'en' ? 'Cancel' : 'إلغاء'}
+                  {t('cancel')}
                 </Button>
                 <Button
                   variant="destructive"

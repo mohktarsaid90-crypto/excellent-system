@@ -3,9 +3,10 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -16,26 +17,41 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className={cn(
+        "flex min-h-screen w-full bg-background",
+        isRTL && "flex-row-reverse"
+      )}>
         <AppSidebar />
         
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0">
           {/* Top Header */}
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="lg:hidden" />
+          <header className={cn(
+            "sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6",
+            isRTL && "flex-row-reverse"
+          )}>
+            <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
+              <SidebarTrigger className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
               
               {/* Search Bar */}
               <div className="relative hidden md:flex">
-                <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`} />
+                <Search className={cn(
+                  "absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+                  isRTL ? "right-3" : "left-3"
+                )} />
                 <Input
                   placeholder={t('search')}
-                  className={`w-64 lg:w-80 ${isRTL ? 'pr-10' : 'pl-10'} bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary`}
+                  className={cn(
+                    "w-64 lg:w-80 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary",
+                    isRTL ? "pr-10 text-right" : "pl-10"
+                  )}
+                  dir={isRTL ? 'rtl' : 'ltr'}
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
               {/* Mobile Language Switcher */}
               <div className="md:hidden">
                 <LanguageSwitcher />
@@ -44,7 +60,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-accent animate-pulse-soft" />
+                <span className={cn(
+                  "absolute top-1 h-2 w-2 rounded-full bg-accent animate-pulse-soft",
+                  isRTL ? "left-1" : "right-1"
+                )} />
               </Button>
 
               {/* User Avatar */}
@@ -57,7 +76,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 lg:p-6">
+          <main className={cn(
+            "flex-1 p-4 lg:p-6",
+            isRTL && "text-right"
+          )}>
             <div className="animate-fade-in">
               {children}
             </div>
