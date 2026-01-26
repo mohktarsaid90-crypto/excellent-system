@@ -140,11 +140,17 @@
 
   /* RTL Support for Arabic */
   html[dir="rtl"] {
-    font-family: 'Inter', 'Segoe UI', 'Tahoma', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  /* RTL body class for additional styling */
+  body.rtl {
+    direction: rtl;
+    text-align: right;
   }
 }
 
@@ -200,5 +206,107 @@
   /* RTL-aware spacing */
   .rtl\:space-x-reverse > :not([hidden]) ~ :not([hidden]) {
     --tw-space-x-reverse: 1;
+  }
+
+  /* RTL-specific utilities */
+  [dir="rtl"] .rtl\:flip {
+    transform: scaleX(-1);
+  }
+
+  [dir="rtl"] .rtl\:text-right {
+    text-align: right;
+  }
+
+  [dir="rtl"] .rtl\:text-left {
+    text-align: left;
+  }
+
+  /* RTL sidebar positioning */
+  [dir="rtl"] [data-side="right"] {
+    --sidebar-side: right;
+  }
+
+  [dir="rtl"] [data-side="left"] {
+    --sidebar-side: left;
+  }
+
+  /* RTL transitions */
+  [dir="rtl"] .sidebar-transition {
+    transition: right 0.3s ease-in-out, left 0.3s ease-in-out;
+  }
+
+  /* Table RTL support */
+  [dir="rtl"] table {
+    direction: rtl;
+  }
+
+  [dir="rtl"] th,
+  [dir="rtl"] td {
+    text-align: right;
+  }
+
+  [dir="rtl"] th.text-center,
+  [dir="rtl"] td.text-center {
+    text-align: center;
+  }
+
+  /* Form RTL support */
+  [dir="rtl"] input,
+  [dir="rtl"] textarea,
+  [dir="rtl"] select {
+    text-align: right;
+  }
+
+  [dir="rtl"] input[type="number"] {
+    text-align: left;
+  }
+
+  /* Badge and icon positioning */
+  [dir="rtl"] .badge-icon {
+    margin-left: 0.25rem;
+    margin-right: 0;
+  }
+
+  /* Flex reverse for RTL */
+  [dir="rtl"] .rtl\:flex-row-reverse {
+    flex-direction: row-reverse;
+  }
+
+  /* Margin/Padding adjustments for RTL */
+  [dir="rtl"] .rtl\:mr-auto {
+    margin-right: auto;
+    margin-left: 0;
+  }
+
+  [dir="rtl"] .rtl\:ml-auto {
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  /* Animation direction for RTL */
+  [dir="rtl"] .animate-slide-in-right {
+    animation: slideInLeft 0.3s ease-out;
+  }
+
+  @keyframes slideInLeft {
+    from { 
+      opacity: 0;
+      transform: translateX(-100%); 
+    }
+    to { 
+      opacity: 1;
+      transform: translateX(0); 
+    }
+  }
+
+  @keyframes slideInRight {
+    from { 
+      opacity: 0;
+      transform: translateX(100%); 
+    }
+    to { 
+      opacity: 1;
+      transform: translateX(0); 
+    }
   }
 }

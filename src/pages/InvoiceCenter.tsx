@@ -39,7 +39,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const InvoiceCenter = () => {
-  const { language, isRTL } = useLanguage();
+  const { language, isRTL, t } = useLanguage();
   const { data: invoices, isLoading } = useInvoices();
   const { data: stats } = useInvoiceStats();
 
@@ -152,10 +152,13 @@ const InvoiceCenter = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className={cn(
+          "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+          isRTL && "sm:flex-row-reverse"
+        )}>
+          <div className={cn(isRTL && "text-right")}>
             <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
-              {language === 'en' ? 'Invoice Center' : 'مركز الفواتير'}
+              {t('invoices')}
             </h1>
             <p className="text-muted-foreground">
               {language === 'en'
@@ -163,7 +166,7 @@ const InvoiceCenter = () => {
                 : 'الفواتير الفورية مع الضريبة والخصومات وحالة المزامنة'}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className={cn("flex gap-2", isRTL && "flex-row-reverse")}>
             <Button variant="outline" onClick={handleExportExcel} className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               Excel
@@ -179,10 +182,10 @@ const InvoiceCenter = () => {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Total Revenue' : 'إجمالي الإيرادات'}
+                    {t('totalRevenue')}
                   </p>
                   <p className="text-2xl font-bold">
                     {formatCurrency(stats?.totalRevenue || 0)}
@@ -196,10 +199,10 @@ const InvoiceCenter = () => {
           </Card>
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Total VAT' : 'إجمالي الضريبة'}
+                    {t('vat')}
                   </p>
                   <p className="text-2xl font-bold text-info">
                     {formatCurrency(stats?.totalVat || 0)}
@@ -213,10 +216,10 @@ const InvoiceCenter = () => {
           </Card>
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Total Discounts' : 'إجمالي الخصومات'}
+                    {t('discount')}
                   </p>
                   <p className="text-2xl font-bold text-warning">
                     {formatCurrency(stats?.totalDiscounts || 0)}
@@ -230,10 +233,10 @@ const InvoiceCenter = () => {
           </Card>
           <Card className="glass">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+                <div className={cn(isRTL && "text-right")}>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Overdue' : 'متأخر'}
+                    {t('overdue')}
                   </p>
                   <p className="text-2xl font-bold text-destructive">
                     {stats?.overdueCount || 0}
@@ -248,7 +251,7 @@ const InvoiceCenter = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4">
+        <div className={cn("flex flex-wrap items-center gap-4", isRTL && "flex-row-reverse")}>
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className={cn(
               "absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground",
@@ -258,7 +261,8 @@ const InvoiceCenter = () => {
               placeholder={language === 'en' ? 'Search invoices...' : 'البحث عن فاتورة...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn("bg-card", isRTL ? "pr-10" : "pl-10")}
+              className={cn("bg-card", isRTL ? "pr-10 text-right" : "pl-10")}
+              dir={isRTL ? 'rtl' : 'ltr'}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -267,10 +271,10 @@ const InvoiceCenter = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{language === 'en' ? 'All Status' : 'جميع الحالات'}</SelectItem>
-              <SelectItem value="pending">{language === 'en' ? 'Pending' : 'قيد الانتظار'}</SelectItem>
-              <SelectItem value="partial">{language === 'en' ? 'Partial' : 'جزئي'}</SelectItem>
-              <SelectItem value="paid">{language === 'en' ? 'Paid' : 'مدفوع'}</SelectItem>
-              <SelectItem value="overdue">{language === 'en' ? 'Overdue' : 'متأخر'}</SelectItem>
+              <SelectItem value="pending">{t('pending')}</SelectItem>
+              <SelectItem value="partial">{t('partial')}</SelectItem>
+              <SelectItem value="paid">{t('paid')}</SelectItem>
+              <SelectItem value="overdue">{t('overdue')}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={syncFilter} onValueChange={setSyncFilter}>
@@ -279,8 +283,8 @@ const InvoiceCenter = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{language === 'en' ? 'All' : 'الكل'}</SelectItem>
-              <SelectItem value="synced">{language === 'en' ? 'Live Synced' : 'مباشر'}</SelectItem>
-              <SelectItem value="offline">{language === 'en' ? 'Offline Upload' : 'رفع بدون اتصال'}</SelectItem>
+              <SelectItem value="synced">{t('synced')}</SelectItem>
+              <SelectItem value="offline">{t('offline')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -288,10 +292,10 @@ const InvoiceCenter = () => {
         {/* Invoices Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <FileText className="h-5 w-5" />
-              {language === 'en' ? 'Invoices' : 'الفواتير'}
-              <Badge variant="secondary" className="ml-2">
+              {t('invoices')}
+              <Badge variant="secondary" className={cn(isRTL ? "mr-2" : "ml-2")}>
                 {filteredInvoices?.length || 0}
               </Badge>
             </CardTitle>
@@ -310,53 +314,53 @@ const InvoiceCenter = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{language === 'en' ? 'Invoice #' : 'رقم الفاتورة'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Agent' : 'المندوب'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Customer' : 'العميل'}</TableHead>
-                      <TableHead className="text-right">{language === 'en' ? 'Subtotal' : 'المجموع'}</TableHead>
-                      <TableHead className="text-right">{language === 'en' ? 'Discount' : 'الخصم'}</TableHead>
-                      <TableHead className="text-right">{language === 'en' ? 'VAT (15%)' : 'الضريبة'}</TableHead>
-                      <TableHead className="text-right">{language === 'en' ? 'Total' : 'الإجمالي'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Status' : 'الحالة'}</TableHead>
-                      <TableHead className="text-center">{language === 'en' ? 'Sync' : 'مزامنة'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Date' : 'التاريخ'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('invoiceNumber')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('agent')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('customer')}</TableHead>
+                      <TableHead className={cn(isRTL ? "text-left" : "text-right")}>{t('subtotal')}</TableHead>
+                      <TableHead className={cn(isRTL ? "text-left" : "text-right")}>{t('discount')}</TableHead>
+                      <TableHead className={cn(isRTL ? "text-left" : "text-right")}>{t('vat')} (15%)</TableHead>
+                      <TableHead className={cn(isRTL ? "text-left" : "text-right")}>{t('total')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('paymentStatus')}</TableHead>
+                      <TableHead className="text-center">{t('synced')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('date')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredInvoices?.map((invoice) => (
                       <TableRow key={invoice.id}>
-                        <TableCell className="font-mono font-medium">
+                        <TableCell className={cn("font-mono font-medium", isRTL && "text-right")}>
                           {invoice.invoice_number}
                         </TableCell>
-                        <TableCell>{invoice.agents?.name || '-'}</TableCell>
-                        <TableCell>{invoice.customers?.name || '-'}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className={cn(isRTL && "text-right")}>{invoice.agents?.name || '-'}</TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>{invoice.customers?.name || '-'}</TableCell>
+                        <TableCell className={cn(isRTL ? "text-left" : "text-right")}>
                           {formatCurrency(Number(invoice.subtotal))}
                         </TableCell>
-                        <TableCell className="text-right text-warning">
+                        <TableCell className={cn("text-warning", isRTL ? "text-left" : "text-right")}>
                           -{formatCurrency(Number(invoice.discount_amount))}
                         </TableCell>
-                        <TableCell className="text-right text-info">
+                        <TableCell className={cn("text-info", isRTL ? "text-left" : "text-right")}>
                           +{formatCurrency(Number(invoice.vat_amount))}
                         </TableCell>
-                        <TableCell className="text-right font-bold">
+                        <TableCell className={cn("font-bold", isRTL ? "text-left" : "text-right")}>
                           {formatCurrency(Number(invoice.total_amount))}
                         </TableCell>
-                        <TableCell>{getStatusBadge(invoice.payment_status)}</TableCell>
+                        <TableCell className={cn(isRTL && "text-right")}>{getStatusBadge(invoice.payment_status)}</TableCell>
                         <TableCell className="text-center">
                           {invoice.offline_created ? (
-                            <div className="flex items-center justify-center gap-1 text-warning">
+                            <div className={cn("flex items-center justify-center gap-1 text-warning", isRTL && "flex-row-reverse")}>
                               <WifiOff className="h-4 w-4" />
-                              <span className="text-xs">Offline</span>
+                              <span className="text-xs">{t('offline')}</span>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-center gap-1 text-success">
+                            <div className={cn("flex items-center justify-center gap-1 text-success", isRTL && "flex-row-reverse")}>
                               <Wifi className="h-4 w-4" />
-                              <span className="text-xs">Live</span>
+                              <span className="text-xs">{language === 'en' ? 'Live' : 'مباشر'}</span>
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className={cn("text-sm text-muted-foreground", isRTL && "text-right")}>
                           {formatDateTime(invoice.created_at, language)}
                         </TableCell>
                       </TableRow>

@@ -29,12 +29,13 @@ import {
   XCircle,
   Loader2,
   ArrowRight,
+  ArrowLeft,
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/export';
 import { cn } from '@/lib/utils';
 
 const LoadManagement = () => {
-  const { language } = useLanguage();
+  const { language, isRTL, t } = useLanguage();
   const { user, hasPermission } = useAuth();
   const { data: stockLoads, isLoading } = useStockLoads();
   const approveLoad = useApproveStockLoad();
@@ -97,13 +98,15 @@ const LoadManagement = () => {
     released: stockLoads?.filter((l) => l.status === 'released').length || 0,
   };
 
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
+        <div className={cn(isRTL && "text-right")}>
           <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
-            {language === 'en' ? 'Load Management' : 'إدارة التحميل'}
+            {t('loadManagement')}
           </h1>
           <p className="text-muted-foreground">
             {language === 'en'
@@ -115,28 +118,31 @@ const LoadManagement = () => {
         {/* Workflow Visualization */}
         <Card className="glass overflow-hidden">
           <CardContent className="p-6">
-            <div className="flex items-center justify-center gap-4 flex-wrap">
+            <div className={cn(
+              "flex items-center justify-center gap-4 flex-wrap",
+              isRTL && "flex-row-reverse"
+            )}>
               <div className="flex flex-col items-center gap-2">
                 <div className="h-16 w-16 rounded-full bg-secondary/20 flex items-center justify-center">
                   <Clock className="h-8 w-8 text-secondary-foreground" />
                 </div>
-                <span className="text-sm font-medium">{language === 'en' ? 'Request' : 'طلب'}</span>
+                <span className="text-sm font-medium">{t('requested')}</span>
                 <Badge variant="secondary">{stats.requested}</Badge>
               </div>
-              <ArrowRight className="h-6 w-6 text-muted-foreground hidden sm:block" />
+              <ArrowIcon className="h-6 w-6 text-muted-foreground hidden sm:block" />
               <div className="flex flex-col items-center gap-2">
                 <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
                   <CheckCircle2 className="h-8 w-8 text-primary" />
                 </div>
-                <span className="text-sm font-medium">{language === 'en' ? 'Approved' : 'موافقة'}</span>
+                <span className="text-sm font-medium">{t('approved')}</span>
                 <Badge>{stats.approved}</Badge>
               </div>
-              <ArrowRight className="h-6 w-6 text-muted-foreground hidden sm:block" />
+              <ArrowIcon className="h-6 w-6 text-muted-foreground hidden sm:block" />
               <div className="flex flex-col items-center gap-2">
                 <div className="h-16 w-16 rounded-full bg-success/20 flex items-center justify-center">
                   <Truck className="h-8 w-8 text-success" />
                 </div>
-                <span className="text-sm font-medium">{language === 'en' ? 'Released' : 'إصدار'}</span>
+                <span className="text-sm font-medium">{t('released')}</span>
                 <Badge variant="outline">{stats.released}</Badge>
               </div>
             </div>
@@ -144,17 +150,17 @@ const LoadManagement = () => {
         </Card>
 
         {/* Filter */}
-        <div className="flex items-center gap-4">
+        <div className={cn("flex items-center gap-4", isRTL && "flex-row-reverse")}>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder={language === 'en' ? 'Filter by status' : 'تصفية حسب الحالة'} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{language === 'en' ? 'All Status' : 'جميع الحالات'}</SelectItem>
-              <SelectItem value="requested">{language === 'en' ? 'Requested' : 'مطلوب'}</SelectItem>
-              <SelectItem value="approved">{language === 'en' ? 'Approved' : 'موافق عليه'}</SelectItem>
-              <SelectItem value="released">{language === 'en' ? 'Released' : 'تم الإصدار'}</SelectItem>
-              <SelectItem value="rejected">{language === 'en' ? 'Rejected' : 'مرفوض'}</SelectItem>
+              <SelectItem value="requested">{t('requested')}</SelectItem>
+              <SelectItem value="approved">{t('approved')}</SelectItem>
+              <SelectItem value="released">{t('released')}</SelectItem>
+              <SelectItem value="rejected">{t('rejected')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -162,7 +168,7 @@ const LoadManagement = () => {
         {/* Stock Loads Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
               <Package className="h-5 w-5" />
               {language === 'en' ? 'Stock Load Requests' : 'طلبات تحميل المخزون'}
             </CardTitle>
@@ -181,32 +187,32 @@ const LoadManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{language === 'en' ? 'Agent' : 'المندوب'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Status' : 'الحالة'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Requested At' : 'تاريخ الطلب'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Approved At' : 'تاريخ الموافقة'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Released At' : 'تاريخ الإصدار'}</TableHead>
-                      <TableHead>{language === 'en' ? 'Actions' : 'الإجراءات'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('agent')}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{language === 'en' ? 'Status' : 'الحالة'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{language === 'en' ? 'Requested At' : 'تاريخ الطلب'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{language === 'en' ? 'Approved At' : 'تاريخ الموافقة'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{language === 'en' ? 'Released At' : 'تاريخ الإصدار'}</TableHead>
+                      <TableHead className={cn(isRTL && "text-right")}>{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredLoads?.map((load) => (
                       <TableRow key={load.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className={cn("font-medium", isRTL && "text-right")}>
                           {load.agents?.name || '-'}
                         </TableCell>
-                        <TableCell>{getStatusBadge(load.status)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className={cn(isRTL && "text-right")}>{getStatusBadge(load.status)}</TableCell>
+                        <TableCell className={cn("text-sm text-muted-foreground", isRTL && "text-right")}>
                           {formatDateTime(load.requested_at, language)}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className={cn("text-sm text-muted-foreground", isRTL && "text-right")}>
                           {load.approved_at ? formatDateTime(load.approved_at, language) : '-'}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className={cn("text-sm text-muted-foreground", isRTL && "text-right")}>
                           {load.released_at ? formatDateTime(load.released_at, language) : '-'}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
+                        <TableCell className={cn(isRTL && "text-right")}>
+                          <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse justify-end")}>
                             {load.status === 'requested' && canManageLoads && (
                               <Button
                                 size="sm"
@@ -216,9 +222,9 @@ const LoadManagement = () => {
                                 {approveLoad.isPending ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  <CheckCircle2 className={cn("h-4 w-4", isRTL ? "ml-1" : "mr-1")} />
                                 )}
-                                {language === 'en' ? 'Approve' : 'موافقة'}
+                                {t('approve')}
                               </Button>
                             )}
                             {load.status === 'approved' && canManageLoads && (
@@ -231,9 +237,9 @@ const LoadManagement = () => {
                                 {releaseLoad.isPending ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <Truck className="h-4 w-4 mr-1" />
+                                  <Truck className={cn("h-4 w-4", isRTL ? "ml-1" : "mr-1")} />
                                 )}
-                                {language === 'en' ? 'Release' : 'إصدار'}
+                                {t('release')}
                               </Button>
                             )}
                           </div>
