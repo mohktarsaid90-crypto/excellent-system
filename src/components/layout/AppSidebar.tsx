@@ -115,10 +115,7 @@ export const AppSidebar = () => {
     <Sidebar
       side={isRTL ? 'right' : 'left'}
       collapsible="icon"
-      className={cn(
-        "border-sidebar-border bg-sidebar transition-all duration-300",
-        isRTL && "rtl"
-      )}
+      className="border-sidebar-border bg-sidebar transition-all duration-300"
     >
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
