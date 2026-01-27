@@ -55,20 +55,30 @@ export const useCreateAgent = () => {
 
   return useMutation({
     mutationFn: async (agentData: CreateAgentData) => {
-      // First, create the auth user for the agent
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: agentData.email,
-        password: agentData.password,
-        options: {
-          data: {
-            full_name: agentData.name,
-            is_agent: true,
-          },
+      // Get current session token to authenticate edge function call
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('You must be logged in to create agents');
+      }
+
+      // Call edge function to create user (uses service role, won't affect admin session)
+      const { data: funcData, error: funcError } = await supabase.functions.invoke('create-agent-user', {
+        body: {
+          email: agentData.email,
+          password: agentData.password,
+          name: agentData.name,
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create auth user');
+      if (funcError) {
+        throw new Error(funcError.message || 'Failed to create agent user');
+      }
+
+      if (!funcData?.userId) {
+        throw new Error(funcData?.error || 'Failed to create agent user');
+      }
 
       // Now create the agent record with the auth user ID
       const { data, error } = await supabase
@@ -81,7 +91,7 @@ export const useCreateAgent = () => {
           can_give_discounts: agentData.can_give_discounts || false,
           can_add_clients: agentData.can_add_clients || false,
           can_process_returns: agentData.can_process_returns || false,
-          auth_user_id: authData.user.id,
+          auth_user_id: funcData.userId,
         }])
         .select()
         .single();
