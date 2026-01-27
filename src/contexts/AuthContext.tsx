@@ -33,13 +33,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .maybeSingle();
       
       if (error) {
-        console.error('Error fetching user role:', error);
+        // SECURITY: Only log errors in development to prevent information leakage
+        if (import.meta.env.DEV) {
+          console.error('Error fetching user role:', error);
+        }
         return null;
       }
       
       return data?.role as AdminRole | null;
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      // SECURITY: Only log errors in development to prevent information leakage
+      if (import.meta.env.DEV) {
+        console.error('Error fetching user role:', error);
+      }
       return null;
     }
   };
