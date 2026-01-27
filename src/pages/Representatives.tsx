@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Search, Filter, MapPin, Phone, Mail, MoreVertical, Loader2, Trash2, Pencil } from 'lucide-react';
+import { Plus, Search, Filter, Phone, Mail, MoreVertical, Loader2, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRepresentatives, CreateRepresentativeData, UpdateRepresentativeData } from '@/hooks/useRepresentatives';
 import {
@@ -44,12 +44,12 @@ const Representatives = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedRep, setSelectedRep] = useState<any>(null);
   
+  // SECURITY: Removed password field - agents should use Supabase Auth if authentication is needed
   const [formData, setFormData] = useState<CreateRepresentativeData>({
     name: '',
     email: '',
     phone: '',
     monthly_target: 0,
-    password: '',
   });
 
   const filteredReps = representatives.filter(rep => 
@@ -60,7 +60,7 @@ const Representatives = () => {
   const handleCreateSubmit = async () => {
     await createRepresentative.mutateAsync(formData);
     setIsCreateDialogOpen(false);
-    setFormData({ name: '', email: '', phone: '', monthly_target: 0, password: '' });
+    setFormData({ name: '', email: '', phone: '', monthly_target: 0 });
   };
 
   const handleEditSubmit = async () => {
@@ -295,7 +295,7 @@ const Representatives = () => {
         )}
       </div>
 
-      {/* Create Dialog */}
+      {/* Create Dialog - SECURITY: Password field removed */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="sm:max-w-[425px]" dir={isRTL ? 'rtl' : 'ltr'}>
           <DialogHeader>
@@ -337,15 +337,6 @@ const Representatives = () => {
                 type="number"
                 value={formData.monthly_target}
                 onChange={(e) => setFormData({ ...formData, monthly_target: Number(e.target.value) })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">{t('password')}</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
             </div>
           </div>
@@ -423,12 +414,12 @@ const Representatives = () => {
         <AlertDialogContent dir={isRTL ? 'rtl' : 'ltr'}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {language === 'en' ? 'Are you sure?' : 'هل أنت متأكد؟'}
+              {language === 'en' ? 'Delete Representative' : 'حذف المندوب'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {language === 'en' 
-                ? `This will permanently delete ${selectedRep?.name}. This action cannot be undone.`
-                : `سيتم حذف ${selectedRep?.name} نهائياً. لا يمكن التراجع عن هذا الإجراء.`
+                ? `Are you sure you want to delete ${selectedRep?.name}? This action cannot be undone.`
+                : `هل أنت متأكد من حذف ${selectedRep?.name}؟ لا يمكن التراجع عن هذا الإجراء.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>

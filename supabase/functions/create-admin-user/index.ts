@@ -23,12 +23,66 @@ serve(async (req) => {
       }
     )
 
+    // SECURITY: Verify the request comes from an authenticated IT Admin
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Missing authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Validate the JWT and get claims
+    const { data: claimsData, error: claimsError } = await supabaseAdmin.auth.getClaims(token)
+    
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const requestingUserId = claimsData.claims.sub as string
+
+    // Check if the requesting user has it_admin role
+    const { data: roleData, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', requestingUserId)
+      .single()
+
+    if (roleError || roleData?.role !== 'it_admin') {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Only IT Admins can create admin users' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { email, password, full_name, role } = await req.json()
 
     // Validate inputs
     if (!email || !password || !full_name || !role) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: email, password, full_name, role' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 8 characters long' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -69,22 +123,23 @@ serve(async (req) => {
       })
 
     if (profileError) {
-      console.error('Profile creation error:', profileError)
+      // Log error but continue - profile creation is not critical
+      console.error('Profile creation error')
     }
 
     // Assign the role
-    const { error: roleError } = await supabaseAdmin
+    const { error: assignRoleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: userId,
         role
       })
 
-    if (roleError) {
+    if (assignRoleError) {
       // Clean up: delete the user if role assignment fails
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return new Response(
-        JSON.stringify({ error: `Failed to assign role: ${roleError.message}` }),
+        JSON.stringify({ error: 'Failed to assign role' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -100,9 +155,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    // Generic error message to avoid leaking internal details
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred while processing the request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
