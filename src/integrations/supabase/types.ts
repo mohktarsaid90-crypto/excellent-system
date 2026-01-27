@@ -122,6 +122,7 @@ export type Database = {
           can_add_clients: boolean | null
           can_give_discounts: boolean | null
           can_process_returns: boolean | null
+          cartons_target: number | null
           created_at: string
           credit_balance: number | null
           current_sales: number | null
@@ -136,6 +137,7 @@ export type Database = {
           name: string
           password_hash: string | null
           phone: string | null
+          tons_target: number | null
           updated_at: string
         }
         Insert: {
@@ -143,6 +145,7 @@ export type Database = {
           can_add_clients?: boolean | null
           can_give_discounts?: boolean | null
           can_process_returns?: boolean | null
+          cartons_target?: number | null
           created_at?: string
           credit_balance?: number | null
           current_sales?: number | null
@@ -157,6 +160,7 @@ export type Database = {
           name: string
           password_hash?: string | null
           phone?: string | null
+          tons_target?: number | null
           updated_at?: string
         }
         Update: {
@@ -164,6 +168,7 @@ export type Database = {
           can_add_clients?: boolean | null
           can_give_discounts?: boolean | null
           can_process_returns?: boolean | null
+          cartons_target?: number | null
           created_at?: string
           credit_balance?: number | null
           current_sales?: number | null
@@ -178,6 +183,7 @@ export type Database = {
           name?: string
           password_hash?: string | null
           phone?: string | null
+          tons_target?: number | null
           updated_at?: string
         }
         Relationships: []
