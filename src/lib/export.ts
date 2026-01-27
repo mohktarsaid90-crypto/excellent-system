@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -8,11 +8,42 @@ interface ExportData {
   title: string;
 }
 
-export const exportToExcel = (data: ExportData, filename: string) => {
-  const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, data.title);
-  XLSX.writeFile(wb, `${filename}.xlsx`);
+export const exportToExcel = async (data: ExportData, filename: string) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(data.title);
+  
+  // Add headers
+  worksheet.addRow(data.headers);
+  
+  // Style header row
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF0D9488' } // Teal color
+  };
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  
+  // Add data rows
+  data.rows.forEach(row => {
+    worksheet.addRow(row);
+  });
+  
+  // Auto-fit columns
+  worksheet.columns.forEach(column => {
+    column.width = 15;
+  });
+  
+  // Generate and download file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.xlsx`;
+  link.click();
+  window.URL.revokeObjectURL(url);
 };
 
 export const exportToPDF = (data: ExportData, filename: string) => {
