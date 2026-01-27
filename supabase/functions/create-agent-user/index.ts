@@ -84,10 +84,10 @@ serve(async (req) => {
       )
     }
 
-    // Validate password length
-    if (password.length < 6) {
+    // Validate password length (minimum 8 characters for security)
+    if (password.length < 8) {
       return new Response(
-        JSON.stringify({ error: 'Password must be at least 6 characters long' }),
+        JSON.stringify({ error: 'Password must be at least 8 characters long' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
