@@ -1,13 +1,39 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Building2, Globe, Bell, Shield, Palette, Database, Save } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Building2, Globe, Bell, Shield, Save, Loader2 } from 'lucide-react';
+import { useCompanySettings, useUpdateCompanySettings } from '@/hooks/useCompanySettings';
 
 const Settings = () => {
   const { t, language, setLanguage, isRTL } = useLanguage();
+  const { data: settings, isLoading } = useCompanySettings();
+  const updateSettings = useUpdateCompanySettings();
+
+  const [formData, setFormData] = useState({
+    company_name: '',
+    tax_id: '',
+    phone: '',
+    address: '',
+  });
+
+  // Update form when settings load
+  useState(() => {
+    if (settings) {
+      setFormData({
+        company_name: settings.company_name || '',
+        tax_id: settings.tax_id || '',
+        phone: settings.phone || '',
+        address: settings.address || '',
+      });
+    }
+  });
+
+  const handleSave = async () => {
+    await updateSettings.mutateAsync(formData);
+  };
 
   return (
     <AppLayout>
@@ -38,7 +64,7 @@ const Settings = () => {
                   {language === 'en' ? 'Company Information' : 'معلومات الشركة'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {language === 'en' ? 'Basic company details and branding' : 'تفاصيل الشركة الأساسية والعلامة التجارية'}
+                  {language === 'en' ? 'This info appears on invoices' : 'تظهر هذه المعلومات على الفواتير'}
                 </p>
               </div>
             </div>
@@ -48,26 +74,53 @@ const Settings = () => {
                 <label className="text-sm font-medium text-foreground">
                   {language === 'en' ? 'Company Name' : 'اسم الشركة'}
                 </label>
-                <Input placeholder={language === 'en' ? 'Enter company name' : 'أدخل اسم الشركة'} />
+                <Input 
+                  placeholder={language === 'en' ? 'Enter company name' : 'أدخل اسم الشركة'}
+                  value={formData.company_name}
+                  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  {t('email')}
+                  {language === 'en' ? 'Tax Number (VAT)' : 'الرقم الضريبي'}
                 </label>
-                <Input placeholder="company@example.com" type="email" />
+                <Input 
+                  placeholder={language === 'en' ? 'Enter tax number' : 'أدخل الرقم الضريبي'}
+                  value={formData.tax_id}
+                  onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   {t('phone')}
                 </label>
-                <Input placeholder="+966 XX XXX XXXX" />
+                <Input 
+                  placeholder="+966 XX XXX XXXX"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  {language === 'en' ? 'Tax Number' : 'الرقم الضريبي'}
+                  {t('address')}
                 </label>
-                <Input placeholder={language === 'en' ? 'Enter tax number' : 'أدخل الرقم الضريبي'} />
+                <Input 
+                  placeholder={language === 'en' ? 'Enter address' : 'أدخل العنوان'}
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
               </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <Button onClick={handleSave} disabled={updateSettings.isPending} className="gap-2">
+                {updateSettings.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {t('save')}
+              </Button>
             </div>
           </div>
 
@@ -191,14 +244,6 @@ const Settings = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button className="gap-2">
-            <Save className="h-4 w-4" />
-            {t('save')}
-          </Button>
         </div>
       </div>
     </AppLayout>

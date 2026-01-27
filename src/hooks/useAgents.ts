@@ -9,6 +9,7 @@ export interface Agent {
   phone: string | null;
   monthly_target: number;
   current_sales: number;
+  credit_balance: number;
   can_give_discounts: boolean;
   can_add_clients: boolean;
   can_process_returns: boolean;
@@ -17,6 +18,7 @@ export interface Agent {
   last_location_lat: number | null;
   last_location_lng: number | null;
   last_seen_at: string | null;
+  auth_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +26,7 @@ export interface Agent {
 export interface CreateAgentData {
   name: string;
   email: string;
+  password: string;
   phone?: string;
   monthly_target?: number;
   can_give_discounts?: boolean;
@@ -52,9 +55,34 @@ export const useCreateAgent = () => {
 
   return useMutation({
     mutationFn: async (agentData: CreateAgentData) => {
+      // First, create the auth user for the agent
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: agentData.email,
+        password: agentData.password,
+        options: {
+          data: {
+            full_name: agentData.name,
+            is_agent: true,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Failed to create auth user');
+
+      // Now create the agent record with the auth user ID
       const { data, error } = await supabase
         .from('agents')
-        .insert([agentData])
+        .insert([{
+          name: agentData.name,
+          email: agentData.email,
+          phone: agentData.phone || null,
+          monthly_target: agentData.monthly_target || 0,
+          can_give_discounts: agentData.can_give_discounts || false,
+          can_add_clients: agentData.can_add_clients || false,
+          can_process_returns: agentData.can_process_returns || false,
+          auth_user_id: authData.user.id,
+        }])
         .select()
         .single();
 
@@ -65,7 +93,7 @@ export const useCreateAgent = () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
       toast({
         title: 'Success',
-        description: 'Agent created successfully',
+        description: 'Agent created with login credentials',
       });
     },
     onError: (error: Error) => {
@@ -181,6 +209,39 @@ export const useUpdateAgentPermissions = () => {
       toast({
         title: 'Permissions Updated',
         description: 'Agent permissions have been updated',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+export const useUpdateAgentCreditBalance = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, credit_balance }: { id: string; credit_balance: number }) => {
+      const { data, error } = await supabase
+        .from('agents')
+        .update({ credit_balance })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      toast({
+        title: 'Credit Balance Updated',
+        description: 'Agent credit balance has been updated',
       });
     },
     onError: (error: Error) => {
