@@ -65,12 +65,8 @@ export const exportToPDF = (data: ExportData, filename: string) => {
   doc.save(`${filename}.pdf`);
 };
 
-export const formatCurrency = (amount: number, currency: string = 'SAR') => {
-  return new Intl.NumberFormat('en-SA', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+export const formatCurrency = (amount: number) => {
+  return `${amount.toLocaleString('en-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م`;
 };
 
 export const formatDate = (dateString: string, locale: string = 'en') => {
