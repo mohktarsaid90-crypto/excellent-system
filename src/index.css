@@ -221,7 +221,13 @@
     text-align: left;
   }
 
-  /* RTL sidebar positioning - ensure proper shift */
+  /* ============================================
+     RTL LAYOUT RULES - LOCKED FOR STABILITY
+     These rules handle sidebar positioning in Arabic mode
+     DO NOT MODIFY without testing RTL thoroughly
+     ============================================ */
+
+  /* RTL sidebar positioning */
   [dir="rtl"] [data-side="right"] {
     --sidebar-side: right;
   }
@@ -230,22 +236,19 @@
     --sidebar-side: left;
   }
 
-  /* Fix RTL content shift - main content should not overlap with sidebar */
-  [dir="rtl"] .peer-data-\[state\=expanded\]\:lg\:ml-0[data-state="expanded"] ~ main {
-    margin-right: var(--sidebar-width);
-    margin-left: 0;
+  /* Ensure the sidebar spacer works correctly in RTL */
+  [dir="rtl"] .group.peer {
+    order: 1;
   }
 
-  /* Ensure sidebar doesn't overlap content in RTL */
-  [dir="rtl"] aside[data-sidebar="sidebar"] {
-    position: fixed;
-    right: 0;
-    left: auto;
+  /* Main content should flow naturally after the spacer */
+  [dir="rtl"] .flex.min-h-screen > .flex-1 {
+    order: 0;
   }
 
-  [dir="rtl"] .flex.min-h-screen.w-full {
-    flex-direction: row-reverse;
-  }
+  /* ============================================
+     END RTL LAYOUT RULES
+     ============================================ */
 
   /* RTL transitions */
   [dir="rtl"] .sidebar-transition {
