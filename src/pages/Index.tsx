@@ -5,6 +5,8 @@ import { SalesChart } from '@/components/dashboard/SalesChart';
 import { RecentOrders } from '@/components/dashboard/RecentOrders';
 import { RepPerformance } from '@/components/dashboard/RepPerformance';
 import { TopProducts } from '@/components/dashboard/TopProducts';
+import { KPIMetrics } from '@/components/dashboard/KPIMetrics';
+import { TargetVsActual } from '@/components/dashboard/TargetVsActual';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -112,7 +114,15 @@ const Dashboard = () => {
                 variant={stat.variant}
               />
             ))
-          )}
+        )}
+        </div>
+
+        {/* KPI Metrics Row */}
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">
+            {language === 'en' ? 'Performance KPIs' : 'مؤشرات الأداء'}
+          </h2>
+          <KPIMetrics />
         </div>
 
         {/* Charts Row */}
@@ -121,6 +131,13 @@ const Dashboard = () => {
             <SalesChart />
           </div>
           <div>
+            <TargetVsActual />
+          </div>
+        </div>
+
+        {/* Performance Row */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
             <RepPerformance />
           </div>
         </div>

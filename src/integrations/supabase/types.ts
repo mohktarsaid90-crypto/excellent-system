@@ -46,6 +46,76 @@ export type Database = {
           },
         ]
       }
+      agent_visits: {
+        Row: {
+          agent_id: string
+          check_in_at: string | null
+          check_out_at: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          invoice_id: string | null
+          location_lat: number | null
+          location_lng: number | null
+          notes: string | null
+          outcome: string | null
+          visit_date: string
+          visit_type: string
+        }
+        Insert: {
+          agent_id: string
+          check_in_at?: string | null
+          check_out_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          outcome?: string | null
+          visit_date?: string
+          visit_type?: string
+        }
+        Update: {
+          agent_id?: string
+          check_in_at?: string | null
+          check_out_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          notes?: string | null
+          outcome?: string | null
+          visit_date?: string
+          visit_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_visits_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_visits_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_visits_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           auth_user_id: string | null
@@ -515,6 +585,66 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciliation_items: {
+        Row: {
+          created_at: string
+          damage_reason: string | null
+          damaged_quantity: number
+          id: string
+          loaded_quantity: number
+          product_id: string
+          reconciliation_id: string
+          remaining_quantity: number
+          returned_quantity: number
+          sold_quantity: number
+          total_value: number | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          damage_reason?: string | null
+          damaged_quantity?: number
+          id?: string
+          loaded_quantity?: number
+          product_id: string
+          reconciliation_id: string
+          remaining_quantity?: number
+          returned_quantity?: number
+          sold_quantity?: number
+          total_value?: number | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          damage_reason?: string | null
+          damaged_quantity?: number
+          id?: string
+          loaded_quantity?: number
+          product_id?: string
+          reconciliation_id?: string
+          remaining_quantity?: number
+          returned_quantity?: number
+          sold_quantity?: number
+          total_value?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "reconciliations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reconciliations: {
         Row: {
           agent_id: string
@@ -522,12 +652,15 @@ export type Database = {
           approved_by: string | null
           cash_collected: number | null
           created_at: string
+          damage_value: number | null
           date: string
           expected_cash: number | null
           id: string
           notes: string | null
+          return_value: number | null
           status: string | null
           submitted_at: string | null
+          total_damaged: number | null
           total_loaded: number | null
           total_returned: number | null
           total_sold: number | null
@@ -539,12 +672,15 @@ export type Database = {
           approved_by?: string | null
           cash_collected?: number | null
           created_at?: string
+          damage_value?: number | null
           date?: string
           expected_cash?: number | null
           id?: string
           notes?: string | null
+          return_value?: number | null
           status?: string | null
           submitted_at?: string | null
+          total_damaged?: number | null
           total_loaded?: number | null
           total_returned?: number | null
           total_sold?: number | null
@@ -556,12 +692,15 @@ export type Database = {
           approved_by?: string | null
           cash_collected?: number | null
           created_at?: string
+          damage_value?: number | null
           date?: string
           expected_cash?: number | null
           id?: string
           notes?: string | null
+          return_value?: number | null
           status?: string | null
           submitted_at?: string | null
+          total_damaged?: number | null
           total_loaded?: number | null
           total_returned?: number | null
           total_sold?: number | null
