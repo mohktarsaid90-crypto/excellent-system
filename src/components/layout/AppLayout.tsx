@@ -3,8 +3,9 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { Bell, Search, User, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ProfileDropdown } from './ProfileDropdown';
+import { NotificationsDropdown } from './NotificationsDropdown';
+import { Search, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -18,7 +19,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider>
       <div 
-        className="flex min-h-screen w-full bg-background"
+        className={cn(
+          "flex min-h-screen w-full bg-background",
+          isRTL && "flex-row-reverse"
+        )}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         <AppSidebar />
@@ -55,20 +59,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               </div>
               
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className={cn(
-                  "absolute top-1 h-2 w-2 rounded-full bg-accent animate-pulse-soft",
-                  isRTL ? "left-1" : "right-1"
-                )} />
-              </Button>
+              <NotificationsDropdown />
 
-              {/* User Avatar */}
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
-                  <User className="h-4 w-4" />
-                </div>
-              </Button>
+              {/* User Profile */}
+              <ProfileDropdown />
             </div>
           </header>
 

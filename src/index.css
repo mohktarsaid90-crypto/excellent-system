@@ -221,13 +221,30 @@
     text-align: left;
   }
 
-  /* RTL sidebar positioning */
+  /* RTL sidebar positioning - ensure proper shift */
   [dir="rtl"] [data-side="right"] {
     --sidebar-side: right;
   }
 
   [dir="rtl"] [data-side="left"] {
     --sidebar-side: left;
+  }
+
+  /* Fix RTL content shift - main content should not overlap with sidebar */
+  [dir="rtl"] .peer-data-\[state\=expanded\]\:lg\:ml-0[data-state="expanded"] ~ main {
+    margin-right: var(--sidebar-width);
+    margin-left: 0;
+  }
+
+  /* Ensure sidebar doesn't overlap content in RTL */
+  [dir="rtl"] aside[data-sidebar="sidebar"] {
+    position: fixed;
+    right: 0;
+    left: auto;
+  }
+
+  [dir="rtl"] .flex.min-h-screen.w-full {
+    flex-direction: row-reverse;
   }
 
   /* RTL transitions */

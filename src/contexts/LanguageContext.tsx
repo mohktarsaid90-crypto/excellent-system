@@ -11,8 +11,8 @@ interface Translations {
 
 // Core translations for the sales system
 export const translations: Translations = {
-  // App
-  appName: { en: 'Mano ERP', ar: 'مانو ERP' },
+  // App - Keep Mano ERP in English always
+  appName: { en: 'Mano ERP', ar: 'Mano ERP' },
   
   // Navigation
   dashboard: { en: 'Dashboard', ar: 'لوحة التحكم' },
