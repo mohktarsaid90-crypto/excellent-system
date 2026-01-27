@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { AgentMobileLayout } from '@/components/agent/AgentMobileLayout';
 import { useAgentAuth } from '@/contexts/AgentAuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Target, CheckCircle, DollarSign, Package, Weight, Loader2 } from 'lucide-react';
+import { TrendingUp, Target, CheckCircle, DollarSign, Package, Loader2 } from 'lucide-react';
 
 interface KPIData {
   totalVisits: number;
   successfulVisits: number;
   totalInvoices: number;
   totalSales: number;
+  totalCartonsSold: number;
   productivity: number;
   strikeRate: number;
   dropSize: number;
@@ -36,7 +37,7 @@ const AgentTargets = () => {
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const [visitsRes, invoicesRes] = await Promise.all([
+      const [visitsRes, invoicesRes, invoiceItemsRes] = await Promise.all([
         supabase
           .from('agent_visits')
           .select('id, outcome')
@@ -47,19 +48,29 @@ const AgentTargets = () => {
           .select('id, total_amount')
           .eq('agent_id', agent.id)
           .gte('created_at', startOfMonth.toISOString()),
+        supabase
+          .from('invoice_items')
+          .select('quantity, invoices!inner(agent_id, created_at)')
+          .eq('invoices.agent_id', agent.id)
+          .gte('invoices.created_at', startOfMonth.toISOString()),
       ]);
 
       const visits = visitsRes.data || [];
       const invoices = invoicesRes.data || [];
+      const invoiceItems = invoiceItemsRes.data || [];
 
       const totalVisits = visits.length;
       const successfulVisits = visits.filter(v => v.outcome === 'sale').length;
       const totalInvoices = invoices.length;
       const totalSales = invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+      const totalCartonsSold = invoiceItems.reduce((sum, item: any) => sum + (item.quantity || 0), 0);
 
-      // Calculate KPIs
-      const productivity = totalVisits > 0 ? (totalInvoices / totalVisits) * 100 : 0;
+      // Calculate KPIs exactly as specified:
+      // Productivity = Invoices / Total Visits
+      const productivity = totalVisits > 0 ? totalInvoices / totalVisits : 0;
+      // Strike Rate = Successful Orders (sales) / Total Visits
       const strikeRate = totalVisits > 0 ? (successfulVisits / totalVisits) * 100 : 0;
+      // Drop Size = Total Revenue / Total Invoices
       const dropSize = totalInvoices > 0 ? totalSales / totalInvoices : 0;
 
       setKpis({
@@ -67,6 +78,7 @@ const AgentTargets = () => {
         successfulVisits,
         totalInvoices,
         totalSales,
+        totalCartonsSold,
         productivity,
         strikeRate,
         dropSize,
@@ -80,13 +92,6 @@ const AgentTargets = () => {
     }
   };
 
-  const getProgressColor = (value: number, target: number) => {
-    const percentage = (value / target) * 100;
-    if (percentage >= 100) return 'bg-emerald-500';
-    if (percentage >= 75) return 'bg-amber-500';
-    return 'bg-red-500';
-  };
-
   if (isLoading) {
     return (
       <AgentMobileLayout title="أدائي" showBack>
@@ -97,21 +102,21 @@ const AgentTargets = () => {
     );
   }
 
+  // Progress calculations - Only EGP and Cartons (removed Tons)
   const valueProgress = agent?.monthly_target ? ((agent.current_sales || 0) / agent.monthly_target) * 100 : 0;
-  const cartonsProgress = agent?.cartons_target ? 0 : 0; // Would need cartons sold data
-  const tonsProgress = agent?.tons_target ? 0 : 0; // Would need tons sold data
+  const cartonsProgress = agent?.cartons_target ? ((kpis?.totalCartonsSold || 0) / agent.cartons_target) * 100 : 0;
 
   return (
     <AgentMobileLayout title="أدائي" showBack>
       <div className="p-4 space-y-4">
-        {/* Target vs Actual Cards */}
+        {/* Target vs Actual Cards - Only EGP and Cartons */}
         <div className="space-y-3">
           <h2 className="font-bold text-lg flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
             المستهدفات
           </h2>
 
-          {/* Value Target */}
+          {/* Value Target (EGP) */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
@@ -139,31 +144,12 @@ const AgentTargets = () => {
                   <span className="font-medium">الكراتين</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  0 / {agent?.cartons_target || 0}
+                  {kpis?.totalCartonsSold || 0} / {agent?.cartons_target || 0}
                 </span>
               </div>
-              <Progress value={cartonsProgress} className="h-3" />
+              <Progress value={Math.min(cartonsProgress, 100)} className="h-3" />
               <p className="text-left text-sm font-bold mt-1 text-primary">
                 {cartonsProgress.toFixed(1)}%
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Tons Target */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Weight className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium">الأطنان</span>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  0 / {agent?.tons_target || 0}
-                </span>
-              </div>
-              <Progress value={tonsProgress} className="h-3" />
-              <p className="text-left text-sm font-bold mt-1 text-primary">
-                {tonsProgress.toFixed(1)}%
               </p>
             </CardContent>
           </Card>
@@ -177,18 +163,18 @@ const AgentTargets = () => {
           </h2>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* Productivity */}
+            {/* Productivity: Invoices / Total Visits */}
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-blue-600 font-medium">الإنتاجية</p>
                 <p className="text-3xl font-bold text-blue-700 mt-1">
-                  {kpis?.productivity.toFixed(0) || 0}%
+                  {kpis?.productivity.toFixed(2) || '0.00'}
                 </p>
                 <p className="text-xs text-blue-500 mt-1">فواتير / زيارات</p>
               </CardContent>
             </Card>
 
-            {/* Strike Rate */}
+            {/* Strike Rate: Successful Orders / Total Visits */}
             <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-emerald-600 font-medium">معدل النجاح</p>
@@ -199,7 +185,7 @@ const AgentTargets = () => {
               </CardContent>
             </Card>
 
-            {/* Drop Size */}
+            {/* Drop Size: Total Revenue / Total Invoices */}
             <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-amber-600 font-medium">متوسط الفاتورة</p>
