@@ -58,9 +58,9 @@ serve(async (req) => {
       .eq('user_id', requestingUserId)
       .single()
 
-    if (roleError || !['it_admin', 'company_owner', 'sales_manager'].includes(roleData?.role)) {
+    if (roleError || !['it_admin', 'company_owner'].includes(roleData?.role)) {
       return new Response(
-        JSON.stringify({ error: 'Forbidden: Only admins can create agent users' }),
+        JSON.stringify({ error: 'Forbidden: Only IT Admins and Company Owners can create agent users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -118,8 +118,9 @@ serve(async (req) => {
       })
 
       if (authError) {
+        console.error('Agent user creation failed:', authError.message)
         return new Response(
-          JSON.stringify({ error: authError.message }),
+          JSON.stringify({ error: 'Failed to create agent user. Please check credentials and try again.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }

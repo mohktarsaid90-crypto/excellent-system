@@ -105,8 +105,9 @@ serve(async (req) => {
     })
 
     if (authError) {
+      console.error('Admin user creation failed:', authError.message)
       return new Response(
-        JSON.stringify({ error: authError.message }),
+        JSON.stringify({ error: 'Failed to create admin user. Please verify the information and try again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
