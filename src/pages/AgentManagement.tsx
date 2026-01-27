@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -48,6 +49,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const AgentManagement = () => {
+  const navigate = useNavigate();
   const { language, isRTL } = useLanguage();
   const { hasPermission } = useAuth();
   const { data: agents, isLoading } = useAgents();
@@ -410,8 +412,11 @@ const AgentManagement = () => {
                     {filteredAgents?.map((agent) => (
                       <TableRow key={agent.id} className={!agent.is_active ? 'opacity-50' : ''}>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{agent.name}</p>
+                          <div
+                            onClick={() => navigate(`/agents/${agent.id}`)}
+                            className="cursor-pointer hover:text-primary transition-colors"
+                          >
+                            <p className="font-medium hover:underline">{agent.name}</p>
                             <p className="text-sm text-muted-foreground">{agent.email}</p>
                           </div>
                         </TableCell>

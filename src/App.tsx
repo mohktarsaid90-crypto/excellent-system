@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 
 // New ERP Pages
 import AgentManagement from "./pages/AgentManagement";
+import AgentDetail from "./pages/AgentDetail";
 import LoadManagement from "./pages/LoadManagement";
 import Reconciliation from "./pages/Reconciliation";
 import InvoiceCenter from "./pages/InvoiceCenter";
@@ -56,6 +57,11 @@ const App = () => (
               <Route path="/agents" element={
                 <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
                   <AgentManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="/agents/:id" element={
+                <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
+                  <AgentDetail />
                 </ProtectedRoute>
               } />
               <Route path="/load-management" element={
