@@ -19,7 +19,7 @@ import {
   useCustomerAnalysisReport, 
   useInventoryReport 
 } from '@/hooks/useReportsData';
-import { exportSummaryToPDF } from '@/lib/arabicPdfExport';
+import { exportReportToPDF } from '@/lib/pdfExport';
 
 type ReportType = 'sales' | 'agents' | 'customers' | 'inventory' | null;
 
@@ -85,7 +85,14 @@ const Reports = () => {
               { label: language === 'en' ? 'Invoices' : 'الفواتير', value: salesReport.data.totals.invoiceCount },
             ];
             
-            exportSummaryToPDF(
+            const statusLabels: Record<string, { en: string; ar: string }> = {
+              paid: { en: 'Paid', ar: 'مدفوع' },
+              pending: { en: 'Pending', ar: 'معلق' },
+              overdue: { en: 'Overdue', ar: 'متأخر' },
+              partial: { en: 'Partial', ar: 'جزئي' },
+            };
+            
+            await exportReportToPDF(
               language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
               summaryItems,
               {
@@ -102,7 +109,7 @@ const Reports = () => {
                   r.customerName,
                   r.agentName,
                   `${r.amount.toLocaleString()} ج.م`,
-                  r.paymentStatus,
+                  statusLabels[r.paymentStatus]?.[language] || r.paymentStatus,
                 ]),
               },
               `sales_report_${dateStr}`,
@@ -120,7 +127,7 @@ const Reports = () => {
               { label: language === 'en' ? 'Avg Strike Rate' : 'معدل النجاح', value: `${agentReport.data.totals.avgStrikeRate.toFixed(1)}%` },
             ];
             
-            exportSummaryToPDF(
+            await exportReportToPDF(
               language === 'en' ? 'Agent Performance Report' : 'تقرير أداء المندوبين',
               summaryItems,
               {
@@ -157,7 +164,7 @@ const Reports = () => {
               { label: language === 'en' ? 'Outstanding Balance' : 'الرصيد المستحق', value: `${customerReport.data.totals.totalBalance.toLocaleString()} ج.م` },
             ];
             
-            exportSummaryToPDF(
+            await exportReportToPDF(
               language === 'en' ? 'Customer Analysis Report' : 'تقرير تحليل العملاء',
               summaryItems,
               {
@@ -192,7 +199,7 @@ const Reports = () => {
               { label: language === 'en' ? 'Damaged' : 'التالف', value: inventoryReport.data.totals.totalDamaged },
             ];
             
-            exportSummaryToPDF(
+            await exportReportToPDF(
               language === 'en' ? 'Inventory Report' : 'تقرير المخزون',
               summaryItems,
               {

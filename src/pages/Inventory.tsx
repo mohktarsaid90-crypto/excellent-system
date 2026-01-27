@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Download, Package, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProducts } from '@/hooks/useProducts';
-import { exportToExcel, exportToPDF } from '@/lib/export';
+import { exportToExcel } from '@/lib/export';
+import { exportTableToPDF } from '@/lib/pdfExport';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,24 +100,42 @@ const Inventory = () => {
     exportToExcel(data, `inventory_${new Date().toISOString().split('T')[0]}`);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!filteredProducts) return;
     
     const data = {
-      title: language === 'en' ? 'Inventory Report' : 'تقرير المخزون',
-      headers: ['SKU', 'Product', 'Category', 'Qty', 'Carton Price', 'Pcs/Carton', 'Unit Price'],
-      rows: filteredProducts.map(p => [
-        p.sku,
-        language === 'en' ? p.name_en : p.name_ar,
-        p.category || '-',
-        p.stock_quantity || 0,
-        `${p.carton_price || 0}`,
-        p.pieces_per_carton || 1,
-        `${p.unit_price}`,
-      ]),
+      title: '',
+      headers: [
+        language === 'en' ? 'SKU' : 'رمز المنتج',
+        language === 'en' ? 'Product Name' : 'اسم المنتج',
+        language === 'en' ? 'Category' : 'الفئة',
+        language === 'en' ? 'Stock Qty' : 'الكمية',
+        language === 'en' ? 'Carton Price' : 'سعر الكرتونة',
+        language === 'en' ? 'Pieces/Carton' : 'قطع/كرتونة',
+        language === 'en' ? 'Unit Price' : 'سعر الوحدة',
+        language === 'en' ? 'Status' : 'الحالة',
+      ],
+      rows: filteredProducts.map(p => {
+        const status = getStockStatus(p.stock_quantity, p.min_stock_level);
+        return [
+          p.sku,
+          language === 'en' ? p.name_en : p.name_ar,
+          p.category || '-',
+          p.stock_quantity || 0,
+          `${(p.carton_price || 0).toLocaleString()} ج.م`,
+          p.pieces_per_carton || 1,
+          `${p.unit_price.toLocaleString()} ج.م`,
+          statusConfig[status].label[language],
+        ];
+      }),
     };
     
-    exportToPDF(data, `inventory_${new Date().toISOString().split('T')[0]}`);
+    await exportTableToPDF(
+      language === 'en' ? 'Inventory Report' : 'تقرير المخزون',
+      data,
+      `inventory_${new Date().toISOString().split('T')[0]}`,
+      language
+    );
   };
 
   return (

@@ -9,7 +9,8 @@ import { Plus, Search, Download, Eye, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDateTime, exportToExcel, exportToPDF } from '@/lib/export';
+import { formatDateTime, exportToExcel } from '@/lib/export';
+import { exportTableToPDF } from '@/lib/pdfExport';
 import { StatusFilter } from '@/components/filters/StatusFilter';
 import { DateRangeFilter } from '@/components/filters/DateRangeFilter';
 import {
@@ -174,22 +175,35 @@ const Sales = () => {
     exportToExcel(data, `sales_${new Date().toISOString().split('T')[0]}`);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!filteredSales) return;
     const data = {
-      title: language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
-      headers: ['Invoice #', 'Customer', 'Agent', 'Items', 'Total', 'Status', 'Date'],
+      title: '',
+      headers: [
+        language === 'en' ? 'Invoice #' : 'رقم الفاتورة',
+        language === 'en' ? 'Customer' : 'العميل',
+        language === 'en' ? 'Agent' : 'المندوب',
+        language === 'en' ? 'Items' : 'العناصر',
+        language === 'en' ? 'Total' : 'الإجمالي',
+        language === 'en' ? 'Status' : 'الحالة',
+        language === 'en' ? 'Date' : 'التاريخ',
+      ],
       rows: filteredSales.map((sale) => [
         sale.invoice_number,
         sale.customer_name || '-',
         sale.agent_name || '-',
         sale.item_count,
-        `${sale.total_amount}`,
-        sale.payment_status,
-        formatDateTime(sale.created_at, 'en'),
+        `${sale.total_amount.toLocaleString()} ج.م`,
+        paymentStatusConfig[sale.payment_status]?.label[language] || sale.payment_status,
+        formatDateTime(sale.created_at, language),
       ]),
     };
-    exportToPDF(data, `sales_${new Date().toISOString().split('T')[0]}`);
+    await exportTableToPDF(
+      language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
+      data,
+      `sales_${new Date().toISOString().split('T')[0]}`,
+      language
+    );
   };
 
   const hasNoData = !filteredSales || filteredSales.length === 0;
