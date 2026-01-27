@@ -1,9 +1,50 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AgentMobileLayout } from '@/components/agent/AgentMobileLayout';
-import { MapPin, Receipt, TrendingUp, Package } from 'lucide-react';
+import { useAgentAuth } from '@/contexts/AgentAuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { MapPin, Receipt, TrendingUp, Package, Truck } from 'lucide-react';
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
+  const { agent } = useAgentAuth();
+  const [todayStats, setTodayStats] = useState({ visits: 0, sales: 0 });
+
+  useEffect(() => {
+    if (agent) {
+      fetchTodayStats();
+    }
+  }, [agent]);
+
+  const fetchTodayStats = async () => {
+    if (!agent) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const [visitsRes, salesRes] = await Promise.all([
+        supabase
+          .from('agent_visits')
+          .select('id', { count: 'exact' })
+          .eq('agent_id', agent.id)
+          .eq('visit_date', today),
+        supabase
+          .from('invoices')
+          .select('total_amount')
+          .eq('agent_id', agent.id)
+          .gte('created_at', today),
+      ]);
+
+      const visitsCount = visitsRes.count || 0;
+      const salesTotal = salesRes.data?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
+
+      setTodayStats({ visits: visitsCount, sales: salesTotal });
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error fetching today stats:', error);
+      }
+    }
+  };
 
   const menuItems = [
     {
@@ -38,6 +79,14 @@ const AgentDashboard = () => {
       color: 'from-purple-500 to-purple-600',
       path: '/agent/inventory',
     },
+    {
+      id: 'settlement',
+      title: 'تفريغ وتسوية',
+      subtitle: 'إنهاء الوردية وتسوية النقدية',
+      icon: Truck,
+      color: 'from-rose-500 to-rose-600',
+      path: '/agent/settlement',
+    },
   ];
 
   return (
@@ -47,11 +96,11 @@ const AgentDashboard = () => {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card rounded-xl p-4 border shadow-sm">
             <p className="text-xs text-muted-foreground">زيارات اليوم</p>
-            <p className="text-2xl font-bold text-primary">0</p>
+            <p className="text-2xl font-bold text-primary">{todayStats.visits}</p>
           </div>
           <div className="bg-card rounded-xl p-4 border shadow-sm">
             <p className="text-xs text-muted-foreground">مبيعات اليوم</p>
-            <p className="text-2xl font-bold text-emerald-600">0 ج.م</p>
+            <p className="text-2xl font-bold text-emerald-600">{todayStats.sales.toLocaleString()} ج.م</p>
           </div>
         </div>
 

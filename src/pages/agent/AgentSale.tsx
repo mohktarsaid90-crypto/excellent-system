@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Plus, Minus, Trash2, Receipt, Loader2, Search } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Receipt, Loader2, Search, MapPin, Navigation } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -30,8 +30,14 @@ interface CartItem {
   quantity: number;
 }
 
+interface ActiveVisit {
+  id: string;
+  customer_id: string;
+  customer_name: string;
+}
+
 const AgentSale = () => {
-  const { agent } = useAgentAuth();
+  const { agent, updateLocation } = useAgentAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -43,10 +49,77 @@ const AgentSale = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeVisit, setActiveVisit] = useState<ActiveVisit | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(true);
 
   useEffect(() => {
     fetchData();
+    getCurrentLocation();
+    checkActiveVisit();
   }, [agent]);
+
+  const getCurrentLocation = () => {
+    setIsLocating(true);
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setIsLocating(false);
+        },
+        () => {
+          toast({
+            title: 'تنبيه',
+            description: 'يرجى تفعيل خدمة الموقع للتأكد من موقعك',
+            variant: 'destructive',
+          });
+          setIsLocating(false);
+        }
+      );
+    } else {
+      setIsLocating(false);
+    }
+  };
+
+  const checkActiveVisit = async () => {
+    if (!agent) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Find today's active visit (checked in but not checked out)
+      const { data: visits, error } = await supabase
+        .from('agent_visits')
+        .select(`
+          id,
+          customer_id,
+          customers (name)
+        `)
+        .eq('agent_id', agent.id)
+        .eq('visit_date', today)
+        .not('check_in_at', 'is', null)
+        .is('check_out_at', null)
+        .order('check_in_at', { ascending: false })
+        .limit(1);
+
+      if (!error && visits && visits.length > 0) {
+        const visit = visits[0] as any;
+        setActiveVisit({
+          id: visit.id,
+          customer_id: visit.customer_id,
+          customer_name: visit.customers?.name || '',
+        });
+        setSelectedCustomer(visit.customer_id);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error checking active visit:', error);
+      }
+    }
+  };
 
   const fetchData = async () => {
     if (!agent) return;
@@ -133,13 +206,26 @@ const AgentSale = () => {
       return;
     }
 
+    if (!currentLocation) {
+      toast({
+        title: 'خطأ',
+        description: 'يرجى تفعيل الموقع للتحقق من موقعك',
+        variant: 'destructive',
+      });
+      getCurrentLocation();
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      // Update agent location
+      await updateLocation(currentLocation.lat, currentLocation.lng);
+
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}`;
 
-      // Create invoice
+      // Create invoice with GPS coordinates
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -173,6 +259,35 @@ const AgentSale = () => {
 
       if (itemsError) throw itemsError;
 
+      // If there's an active visit, link the invoice and update outcome
+      if (activeVisit) {
+        await supabase
+          .from('agent_visits')
+          .update({ 
+            invoice_id: invoice.id,
+            outcome: 'sale',
+            check_out_at: new Date().toISOString(),
+            location_lat: currentLocation.lat,
+            location_lng: currentLocation.lng,
+          })
+          .eq('id', activeVisit.id);
+      } else {
+        // Create a new visit record for this sale
+        await supabase
+          .from('agent_visits')
+          .insert({
+            agent_id: agent.id,
+            customer_id: selectedCustomer,
+            visit_type: 'unscheduled',
+            check_in_at: new Date().toISOString(),
+            check_out_at: new Date().toISOString(),
+            location_lat: currentLocation.lat,
+            location_lng: currentLocation.lng,
+            invoice_id: invoice.id,
+            outcome: 'sale',
+          });
+      }
+
       toast({
         title: 'تم إنشاء الفاتورة',
         description: `رقم الفاتورة: ${invoiceNumber}`,
@@ -203,10 +318,41 @@ const AgentSale = () => {
   return (
     <AgentMobileLayout title="فاتورة بيع" showBack>
       <div className="p-4 space-y-4 pb-40">
+        {/* Location Status */}
+        <div className={`flex items-center gap-2 p-3 rounded-lg ${currentLocation ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+          {isLocating ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Navigation className="h-5 w-5" />
+          )}
+          <span className="text-sm font-medium">
+            {isLocating ? 'جاري تحديد الموقع...' : currentLocation ? 'تم تحديد موقعك' : 'الموقع غير متاح'}
+          </span>
+          {!currentLocation && !isLocating && (
+            <Button variant="ghost" size="sm" onClick={getCurrentLocation}>
+              إعادة المحاولة
+            </Button>
+          )}
+        </div>
+
+        {/* Active Visit Banner */}
+        {activeVisit && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 text-primary">
+            <MapPin className="h-5 w-5" />
+            <span className="text-sm font-medium">
+              زيارة نشطة: {activeVisit.customer_name}
+            </span>
+          </div>
+        )}
+
         {/* Customer Selection */}
         <div className="space-y-2">
           <Label>اختر العميل</Label>
-          <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+          <Select 
+            value={selectedCustomer} 
+            onValueChange={setSelectedCustomer}
+            disabled={!!activeVisit}
+          >
             <SelectTrigger className="h-12">
               <SelectValue placeholder="اختر العميل" />
             </SelectTrigger>
@@ -218,6 +364,9 @@ const AgentSale = () => {
               ))}
             </SelectContent>
           </Select>
+          {activeVisit && (
+            <p className="text-xs text-muted-foreground">العميل مرتبط بالزيارة النشطة</p>
+          )}
         </div>
 
         {/* Product Search */}
@@ -330,7 +479,7 @@ const AgentSale = () => {
           <Button
             className="w-full h-14 text-lg"
             onClick={handleSubmit}
-            disabled={isSubmitting || !selectedCustomer}
+            disabled={isSubmitting || !selectedCustomer || !currentLocation}
           >
             {isSubmitting ? (
               <>

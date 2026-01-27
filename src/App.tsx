@@ -38,6 +38,7 @@ import AgentVisit from "./pages/agent/AgentVisit";
 import AgentSale from "./pages/agent/AgentSale";
 import AgentTargets from "./pages/agent/AgentTargets";
 import AgentInventory from "./pages/agent/AgentInventory";
+import AgentSettlement from "./pages/agent/AgentSettlement";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,13 @@ const App = () => (
               <AgentAuthProvider>
                 <AgentProtectedRoute>
                   <AgentInventory />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent/settlement" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentSettlement />
                 </AgentProtectedRoute>
               </AgentAuthProvider>
             } />
