@@ -30,6 +30,7 @@ import {
   useUpdateAgentPermissions,
   useToggleAgentStatus,
   useUpdateAgentCreditBalance,
+  useUpdateAgentTargets,
 } from '@/hooks/useAgents';
 import {
   UserPlus,
@@ -57,12 +58,19 @@ const AgentManagement = () => {
   const updatePermissions = useUpdateAgentPermissions();
   const toggleStatus = useToggleAgentStatus();
   const updateCreditBalance = useUpdateAgentCreditBalance();
+  const updateTargets = useUpdateAgentTargets();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
+  const [isTargetDialogOpen, setIsTargetDialogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const [creditAmount, setCreditAmount] = useState(0);
+  const [targetValues, setTargetValues] = useState({
+    monthly_target: 0,
+    cartons_target: 0,
+    tons_target: 0,
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [newAgent, setNewAgent] = useState({
     name: '',
@@ -70,6 +78,8 @@ const AgentManagement = () => {
     password: '',
     phone: '',
     monthly_target: 0,
+    cartons_target: 0,
+    tons_target: 0,
   });
 
   // Auto-generate email and password when name changes
@@ -99,7 +109,7 @@ const AgentManagement = () => {
     }
     await createAgent.mutateAsync(newAgent);
     setIsAddDialogOpen(false);
-    setNewAgent({ name: '', email: '', password: '', phone: '', monthly_target: 0 });
+    setNewAgent({ name: '', email: '', password: '', phone: '', monthly_target: 0, cartons_target: 0, tons_target: 0 });
   };
 
   const handleTogglePermission = async (
@@ -127,10 +137,32 @@ const AgentManagement = () => {
     setSelectedAgent(null);
   };
 
+  const handleUpdateTargets = async () => {
+    if (!selectedAgent) return;
+    await updateTargets.mutateAsync({
+      id: selectedAgent.id,
+      monthly_target: targetValues.monthly_target,
+      cartons_target: targetValues.cartons_target,
+      tons_target: targetValues.tons_target,
+    });
+    setIsTargetDialogOpen(false);
+    setSelectedAgent(null);
+  };
+
   const openCreditDialog = (agent: any) => {
     setSelectedAgent(agent);
     setCreditAmount(agent.credit_balance || 0);
     setIsCreditDialogOpen(true);
+  };
+
+  const openTargetDialog = (agent: any) => {
+    setSelectedAgent(agent);
+    setTargetValues({
+      monthly_target: agent.monthly_target || 0,
+      cartons_target: agent.cartons_target || 0,
+      tons_target: agent.tons_target || 0,
+    });
+    setIsTargetDialogOpen(true);
   };
 
   const getPerformanceColor = (current: number, target: number) => {
@@ -231,7 +263,7 @@ const AgentManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{language === 'en' ? 'Monthly Target (EGP)' : 'الهدف الشهري (ج.م)'}</Label>
+                    <Label>{language === 'en' ? 'Value Target (EGP)' : 'الهدف القيمي (ج.م)'}</Label>
                     <Input
                       type="number"
                       value={newAgent.monthly_target}
@@ -241,7 +273,39 @@ const AgentManagement = () => {
                           monthly_target: parseFloat(e.target.value) || 0,
                         })
                       }
+                      placeholder="0"
                     />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{language === 'en' ? 'Cartons Target' : 'هدف الكراتين'}</Label>
+                      <Input
+                        type="number"
+                        value={newAgent.cartons_target}
+                        onChange={(e) =>
+                          setNewAgent({
+                            ...newAgent,
+                            cartons_target: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{language === 'en' ? 'Tons Target' : 'هدف الأطنان'}</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={newAgent.tons_target}
+                        onChange={(e) =>
+                          setNewAgent({
+                            ...newAgent,
+                            tons_target: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        placeholder="0.00"
+                      />
+                    </div>
                   </div>
                   <Button
                     onClick={handleCreateAgent}
@@ -442,14 +506,22 @@ const AgentManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <div className="space-y-1">
-                            <p className={cn("font-medium", getPerformanceColor(Number(agent.current_sales), Number(agent.monthly_target)))}>
-                              {Number(agent.current_sales).toLocaleString()} SAR
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              / {Number(agent.monthly_target).toLocaleString()} SAR
-                            </p>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openTargetDialog(agent)}
+                            disabled={!canManageAgents}
+                            className="hover:bg-primary/10"
+                          >
+                            <div className="space-y-1">
+                              <p className={cn("font-medium", getPerformanceColor(Number(agent.current_sales), Number(agent.monthly_target)))}>
+                                {Number(agent.current_sales).toLocaleString()} EGP
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                / {Number(agent.monthly_target).toLocaleString()} EGP
+                              </p>
+                            </div>
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button
@@ -459,7 +531,7 @@ const AgentManagement = () => {
                             disabled={!canManageAgents}
                             className="text-warning hover:text-warning"
                           >
-                            {Number(agent.credit_balance || 0).toLocaleString()} SAR
+                            {Number(agent.credit_balance || 0).toLocaleString()} EGP
                           </Button>
                         </TableCell>
                         <TableCell className="text-center">
@@ -524,7 +596,7 @@ const AgentManagement = () => {
                 : `تحديث رصيد الآجل لـ: ${selectedAgent?.name}`}
             </p>
             <div className="space-y-2">
-              <Label>{language === 'en' ? 'Credit Balance (SAR)' : 'رصيد الآجل (ريال)'}</Label>
+              <Label>{language === 'en' ? 'Credit Balance (EGP)' : 'رصيد الآجل (ج.م)'}</Label>
               <Input
                 type="number"
                 value={creditAmount}
@@ -542,6 +614,65 @@ const AgentManagement = () => {
                 'Update Balance'
               ) : (
                 'تحديث الرصيد'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Target Settings Dialog */}
+      <Dialog open={isTargetDialogOpen} onOpenChange={setIsTargetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'en' ? 'Set Agent Targets' : 'تحديد أهداف المندوب'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              {language === 'en' 
+                ? `Setting targets for: ${selectedAgent?.name}`
+                : `تحديد الأهداف لـ: ${selectedAgent?.name}`}
+            </p>
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Value Target (EGP)' : 'الهدف القيمي (ج.م)'}</Label>
+              <Input
+                type="number"
+                value={targetValues.monthly_target}
+                onChange={(e) => setTargetValues({ ...targetValues, monthly_target: parseFloat(e.target.value) || 0 })}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Cartons Target' : 'هدف الكراتين'}</Label>
+              <Input
+                type="number"
+                value={targetValues.cartons_target}
+                onChange={(e) => setTargetValues({ ...targetValues, cartons_target: parseFloat(e.target.value) || 0 })}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Tons Target' : 'هدف الأطنان'}</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={targetValues.tons_target}
+                onChange={(e) => setTargetValues({ ...targetValues, tons_target: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
+              />
+            </div>
+            <Button
+              onClick={handleUpdateTargets}
+              className="w-full"
+              disabled={updateTargets.isPending}
+            >
+              {updateTargets.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : language === 'en' ? (
+                'Save Targets'
+              ) : (
+                'حفظ الأهداف'
               )}
             </Button>
           </div>

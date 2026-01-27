@@ -8,6 +8,8 @@ export interface Agent {
   email: string;
   phone: string | null;
   monthly_target: number;
+  cartons_target: number;
+  tons_target: number;
   current_sales: number;
   credit_balance: number;
   can_give_discounts: boolean;
@@ -29,10 +31,52 @@ export interface CreateAgentData {
   password: string;
   phone?: string;
   monthly_target?: number;
+  cartons_target?: number;
+  tons_target?: number;
   can_give_discounts?: boolean;
   can_add_clients?: boolean;
   can_process_returns?: boolean;
 }
+
+export const useUpdateAgentTargets = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, monthly_target, cartons_target, tons_target }: { 
+      id: string; 
+      monthly_target: number;
+      cartons_target: number;
+      tons_target: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('agents')
+        .update({ monthly_target, cartons_target, tons_target })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: ['agent'] });
+      queryClient.invalidateQueries({ queryKey: ['agent-kpis'] });
+      toast({
+        title: 'Targets Updated',
+        description: 'Agent targets have been saved successfully',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
 
 export const useAgents = () => {
   return useQuery({
