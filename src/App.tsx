@@ -39,6 +39,11 @@ import AgentSale from "./pages/agent/AgentSale";
 import AgentTargets from "./pages/agent/AgentTargets";
 import AgentInventory from "./pages/agent/AgentInventory";
 import AgentSettlement from "./pages/agent/AgentSettlement";
+import AgentTodayRoute from "./pages/agent/AgentTodayRoute";
+import AgentAddCustomer from "./pages/agent/AgentAddCustomer";
+
+// Journey Planning
+import JourneyPlanning from "./pages/JourneyPlanning";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +103,20 @@ const App = () => (
                 </AgentProtectedRoute>
               </AgentAuthProvider>
             } />
+            <Route path="/agent/today-route" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentTodayRoute />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent/add-customer" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentAddCustomer />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
 
             {/* ===== ADMIN ROUTES ===== */}
             <Route path="/login" element={
@@ -132,6 +151,13 @@ const App = () => (
               <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
                   <AgentDetail />
+                </ProtectedRoute>
+              </AuthProvider>
+            } />
+            <Route path="/journey-planning" element={
+              <AuthProvider>
+                <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
+                  <JourneyPlanning />
                 </ProtectedRoute>
               </AuthProvider>
             } />

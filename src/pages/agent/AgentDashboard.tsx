@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AgentMobileLayout } from '@/components/agent/AgentMobileLayout';
 import { useAgentAuth } from '@/contexts/AgentAuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, Receipt, TrendingUp, Package, Truck } from 'lucide-react';
+import { MapPin, Receipt, TrendingUp, Package, Truck, Route, UserPlus } from 'lucide-react';
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
@@ -48,6 +48,14 @@ const AgentDashboard = () => {
 
   const menuItems = [
     {
+      id: 'route',
+      title: 'خط سير اليوم',
+      subtitle: 'عرض العملاء المجدولين لليوم',
+      icon: Route,
+      color: 'from-teal-500 to-teal-600',
+      path: '/agent/today-route',
+    },
+    {
       id: 'visit',
       title: 'زيارة جديدة',
       subtitle: 'ابدأ زيارة عميل',
@@ -88,6 +96,9 @@ const AgentDashboard = () => {
       path: '/agent/settlement',
     },
   ];
+
+  // Add customer button if agent has permission
+  const showAddCustomer = agent?.can_add_clients;
 
   return (
     <AgentMobileLayout>
@@ -135,6 +146,30 @@ const AgentDashboard = () => {
               <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-white/10" />
             </button>
           ))}
+
+          {/* Add Customer Button */}
+          {showAddCustomer && (
+            <button
+              onClick={() => navigate('/agent/add-customer')}
+              className="relative overflow-hidden rounded-2xl p-6 text-white bg-gradient-to-br from-slate-500 to-slate-600 shadow-lg active:scale-[0.98] transition-transform flex items-center gap-4"
+            >
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center">
+                  <UserPlus className="h-8 w-8" />
+                </div>
+              </div>
+              <div className="flex-1 text-right">
+                <h3 className="text-xl font-bold">إضافة عميل</h3>
+                <p className="text-white/80 text-sm mt-1">تسجيل عميل جديد بالموقع</p>
+              </div>
+              <div className="text-white/60">
+                <span className="text-2xl">←</span>
+              </div>
+              
+              <div className="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-white/10" />
+              <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-white/10" />
+            </button>
+          )}
         </div>
       </div>
     </AgentMobileLayout>
