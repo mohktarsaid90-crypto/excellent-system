@@ -19,22 +19,29 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <SidebarProvider>
       {/* 
-        The sidebar uses side="right" for RTL which positions it fixed on the right.
-        The spacer div inside Sidebar component creates the gap for the main content.
-        No flex-row-reverse needed - the sidebar handles its own positioning.
+        ============================================
+        RTL-SAFE APP SHELL - LOCKED FOR STABILITY
+        - dir attribute controls text direction
+        - Sidebar fixed positioning handled by CSS
+        - Main content uses margin offset via .app-main-content class
+        ============================================
       */}
       <div 
-        className="flex min-h-screen w-full bg-background"
+        className="min-h-screen w-full bg-background"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
+        {/* Sidebar - Fixed position, side determined by RTL */}
         <AppSidebar />
         
-        {/* Main content wrapper - flex-1 fills remaining space after sidebar spacer */}
-        <div className="flex flex-1 flex-col min-w-0 w-full">
+        {/* 
+          Main content wrapper with app-main-content class
+          CSS handles margin-left (LTR) or margin-right (RTL) automatically
+        */}
+        <div className="app-main-content flex flex-col min-h-screen">
           {/* Top Header */}
           <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6">
             <div className="flex items-center gap-4">
-              <SidebarTrigger className="lg:hidden">
+              <SidebarTrigger className="md:hidden">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
               

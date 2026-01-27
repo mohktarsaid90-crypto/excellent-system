@@ -115,25 +115,32 @@ export const AppSidebar = () => {
     <Sidebar
       side={isRTL ? 'right' : 'left'}
       collapsible="icon"
-      className="border-sidebar-border bg-sidebar transition-all duration-300"
+      className="border-sidebar-border bg-sidebar transition-all duration-300 fixed"
     >
+      {/* ============================================
+          SIDEBAR HEADER - LOCKED FOR STABILITY
+          Logo and branding always in English/LTR
+          Last verified: 2026-01-27
+          ============================================ */}
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          {/* Logo - Always LTR aligned */}
+        <div className="flex items-center gap-3" dir="ltr">
+          {/* Logo - Fixed English branding */}
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground font-bold text-lg shadow-md flex-shrink-0">
             M
           </div>
           {!isCollapsed && (
-            <div className="flex flex-col min-w-0">
-              {/* Always show Mano ERP in English - force LTR */}
+            <div className="flex flex-col min-w-0 text-left">
+              {/* Mano ERP - Always English, Always LTR */}
               <span 
                 className="font-bold text-lg text-sidebar-foreground truncate"
-                dir="ltr"
-                style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                style={{ fontFamily: 'Inter, system-ui, sans-serif', direction: 'ltr' }}
               >
                 Mano ERP
               </span>
-              <span className="text-xs text-sidebar-foreground/60 truncate">
+              <span 
+                className="text-xs text-sidebar-foreground/60 truncate"
+                dir={isRTL ? 'rtl' : 'ltr'}
+              >
                 {t('salesManagement')}
               </span>
             </div>
