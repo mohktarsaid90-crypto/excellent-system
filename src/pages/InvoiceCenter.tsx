@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useInvoices, useInvoiceStats } from '@/hooks/useInvoices';
-import { exportToExcel, exportToPDF, formatCurrency, formatDateTime } from '@/lib/export';
+import { exportToExcel, formatCurrency, formatDateTime } from '@/lib/export';
+import { exportReportToPDF } from '@/lib/pdfExport';
 import {
   FileText,
   DollarSign,
@@ -130,22 +131,56 @@ const InvoiceCenter = () => {
     exportToExcel(data, `invoices_${new Date().toISOString().split('T')[0]}`);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!filteredInvoices) return;
 
+    const summaryItems = [
+      { label: language === 'en' ? 'Total Revenue' : 'إجمالي الإيرادات', value: formatCurrency(stats?.totalRevenue || 0) },
+      { label: language === 'en' ? 'VAT Collected' : 'الضريبة المحصلة', value: formatCurrency(stats?.totalVat || 0) },
+      { label: language === 'en' ? 'Total Discounts' : 'إجمالي الخصومات', value: formatCurrency(stats?.totalDiscounts || 0) },
+      { label: language === 'en' ? 'Overdue Count' : 'الفواتير المتأخرة', value: stats?.overdueCount || 0 },
+    ];
+
+    const statusLabels: Record<string, { en: string; ar: string }> = {
+      pending: { en: 'Pending', ar: 'قيد الانتظار' },
+      partial: { en: 'Partial', ar: 'جزئي' },
+      paid: { en: 'Paid', ar: 'مدفوع' },
+      overdue: { en: 'Overdue', ar: 'متأخر' },
+    };
+
     const data = {
-      title: language === 'en' ? 'Invoices Report' : 'تقرير الفواتير',
-      headers: ['Invoice #', 'Agent', 'Customer', 'Total', 'Status'],
+      title: '',
+      headers: [
+        language === 'en' ? 'Invoice #' : 'رقم الفاتورة',
+        language === 'en' ? 'Agent' : 'المندوب',
+        language === 'en' ? 'Customer' : 'العميل',
+        language === 'en' ? 'Subtotal' : 'المجموع الفرعي',
+        language === 'en' ? 'Discount' : 'الخصم',
+        language === 'en' ? 'VAT' : 'الضريبة',
+        language === 'en' ? 'Total' : 'الإجمالي',
+        language === 'en' ? 'Status' : 'الحالة',
+        language === 'en' ? 'Date' : 'التاريخ',
+      ],
       rows: filteredInvoices.map((inv) => [
         inv.invoice_number,
         inv.agents?.name || '-',
         inv.customers?.name || '-',
+        formatCurrency(Number(inv.subtotal)),
+        formatCurrency(Number(inv.discount_amount)),
+        formatCurrency(Number(inv.vat_amount)),
         formatCurrency(Number(inv.total_amount)),
-        inv.payment_status,
+        statusLabels[inv.payment_status]?.[language] || inv.payment_status,
+        formatDateTime(inv.created_at, language),
       ]),
     };
 
-    exportToPDF(data, `invoices_${new Date().toISOString().split('T')[0]}`);
+    await exportReportToPDF(
+      language === 'en' ? 'Invoices Report' : 'تقرير الفواتير',
+      summaryItems,
+      data,
+      `invoices_${new Date().toISOString().split('T')[0]}`,
+      language
+    );
   };
 
   return (

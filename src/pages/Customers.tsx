@@ -41,7 +41,8 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { StatusFilter } from '@/components/filters/StatusFilter';
-import { exportToExcel, exportToPDF } from '@/lib/export';
+import { exportToExcel } from '@/lib/export';
+import { exportTableToPDF } from '@/lib/pdfExport';
 
 const classificationOptions = [
   { value: 'retail', labelEn: 'Retail', labelAr: 'تجزئة' },
@@ -177,20 +178,32 @@ const Customers = () => {
     exportToExcel(data, `customers_${new Date().toISOString().split('T')[0]}`);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const data = {
-      title: language === 'en' ? 'Customers Report' : 'تقرير العملاء',
-      headers: ['Name', 'Classification', 'City', 'Phone', 'Credit Limit', 'Balance'],
+      title: '',
+      headers: [
+        language === 'en' ? 'Name' : 'الاسم',
+        language === 'en' ? 'Classification' : 'التصنيف',
+        language === 'en' ? 'City' : 'المدينة',
+        language === 'en' ? 'Phone' : 'الهاتف',
+        language === 'en' ? 'Credit Limit' : 'حد الائتمان',
+        language === 'en' ? 'Balance' : 'الرصيد',
+      ],
       rows: filteredCustomers.map((c) => [
         c.name,
-        c.classification || '-',
+        getClassificationLabel(c.classification),
         c.city || '-',
         c.phone || '-',
-        c.credit_limit || 0,
-        c.current_balance || 0,
+        `${(c.credit_limit || 0).toLocaleString()} ج.م`,
+        `${(c.current_balance || 0).toLocaleString()} ج.م`,
       ]),
     };
-    exportToPDF(data, `customers_${new Date().toISOString().split('T')[0]}`);
+    await exportTableToPDF(
+      language === 'en' ? 'Customers Report' : 'تقرير العملاء',
+      data,
+      `customers_${new Date().toISOString().split('T')[0]}`,
+      language
+    );
   };
 
   return (
