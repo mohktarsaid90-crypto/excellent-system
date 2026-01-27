@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface RecentOrder {
   id: string;
@@ -25,6 +26,7 @@ const statusConfig: Record<string, { label: { en: string; ar: string }; classNam
 
 export const RecentOrders = () => {
   const { t, language, isRTL } = useLanguage();
+  const navigate = useNavigate();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['recent-orders'],
@@ -73,12 +75,19 @@ export const RecentOrders = () => {
 
   const hasNoData = !orders || orders.length === 0;
 
+  const handleViewAll = () => {
+    navigate('/sales');
+  };
+
   return (
     <div className="rounded-xl bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">{t('recentOrders')}</h3>
         {!hasNoData && (
-          <button className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+          <button 
+            onClick={handleViewAll}
+            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          >
             {t('viewAll')}
           </button>
         )}

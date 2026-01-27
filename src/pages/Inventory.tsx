@@ -1,9 +1,10 @@
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, Download, Package, Loader2 } from 'lucide-react';
+import { Plus, Search, Download, Package, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useProducts } from '@/hooks/useProducts';
 import { exportToExcel, exportToPDF } from '@/lib/export';
@@ -13,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { StatusFilter } from '@/components/filters/StatusFilter';
 
 const statusConfig = {
   in_stock: { label: { en: 'In Stock', ar: 'متوفر' }, className: 'bg-success/10 text-success border-success/20' },
@@ -21,17 +22,31 @@ const statusConfig = {
   out_of_stock: { label: { en: 'Out of Stock', ar: 'نفد المخزون' }, className: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
+const stockStatusOptions = [
+  { value: 'in_stock', labelEn: 'In Stock', labelAr: 'متوفر' },
+  { value: 'low_stock', labelEn: 'Low Stock', labelAr: 'مخزون منخفض' },
+  { value: 'out_of_stock', labelEn: 'Out of Stock', labelAr: 'نفد المخزون' },
+];
+
 const Inventory = () => {
   const { t, language, isRTL } = useLanguage();
   const { products, isLoading } = useProducts();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Filter products based on search
-  const filteredProducts = products?.filter(product =>
-    product.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.name_ar.includes(searchQuery) ||
-    product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique categories from products
+  const categoryOptions = useMemo(() => {
+    const categories = new Set<string>();
+    products?.forEach((p) => {
+      if (p.category) categories.add(p.category);
+    });
+    return Array.from(categories).map((c) => ({
+      value: c,
+      labelEn: c,
+      labelAr: c,
+    }));
+  }, [products]);
 
   // Determine stock status
   const getStockStatus = (stock: number | null, minStock: number | null) => {
@@ -39,6 +54,22 @@ const Inventory = () => {
     if (minStock !== null && stock < minStock) return 'low_stock';
     return 'in_stock';
   };
+
+  // Filter products based on search, status, and category
+  const filteredProducts = useMemo(() => {
+    return products?.filter((product) => {
+      const matchesSearch =
+        product.name_en.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.name_ar.includes(searchQuery) ||
+        product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const status = getStockStatus(product.stock_quantity, product.min_stock_level);
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(status);
+      const matchesCategory = selectedCategories.length === 0 || (product.category && selectedCategories.includes(product.category));
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [products, searchQuery, selectedStatuses, selectedCategories]);
 
   const handleExportExcel = () => {
     if (!filteredProducts) return;
@@ -121,10 +152,20 @@ const Inventory = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
-            {t('filter')}
-          </Button>
+          <StatusFilter
+            options={stockStatusOptions}
+            selectedValues={selectedStatuses}
+            onSelectionChange={setSelectedStatuses}
+            label={{ en: 'Stock Status', ar: 'حالة المخزون' }}
+          />
+          {categoryOptions.length > 0 && (
+            <StatusFilter
+              options={categoryOptions}
+              selectedValues={selectedCategories}
+              onSelectionChange={setSelectedCategories}
+              label={{ en: 'Category', ar: 'الفئة' }}
+            />
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">

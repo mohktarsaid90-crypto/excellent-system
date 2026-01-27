@@ -5,11 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Search, Filter, Download, Eye, Calendar, FileText } from 'lucide-react';
+import { Plus, Search, Download, Eye, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { formatDateTime } from '@/lib/export';
+import { formatDateTime, exportToExcel, exportToPDF } from '@/lib/export';
+import { StatusFilter } from '@/components/filters/StatusFilter';
+import { DateRangeFilter } from '@/components/filters/DateRangeFilter';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 interface SaleRecord {
   id: string;
@@ -29,9 +38,21 @@ const paymentStatusConfig: Record<string, { label: { en: string; ar: string }; c
   overdue: { label: { en: 'Overdue', ar: 'متأخر' }, className: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
+const paymentStatusOptions = [
+  { value: 'paid', labelEn: 'Paid', labelAr: 'مدفوع' },
+  { value: 'pending', labelEn: 'Pending', labelAr: 'معلق' },
+  { value: 'partial', labelEn: 'Partial', labelAr: 'جزئي' },
+  { value: 'overdue', labelEn: 'Overdue', labelAr: 'متأخر' },
+];
+
 const Sales = () => {
   const { t, language, isRTL } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
+    start: startOfMonth(new Date()),
+    end: endOfMonth(new Date()),
+  });
 
   // Fetch sales data from invoices
   const { data: salesData, isLoading } = useQuery({
@@ -82,18 +103,37 @@ const Sales = () => {
     refetchInterval: 30000,
   });
 
-  // Calculate stats
+  // Filter sales
+  const filteredSales = useMemo(() => {
+    return salesData?.filter((sale) => {
+      const matchesSearch =
+        sale.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sale.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sale.agent_name?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(sale.payment_status);
+
+      const saleDate = new Date(sale.created_at);
+      const matchesDate =
+        (!dateRange.start || saleDate >= dateRange.start) &&
+        (!dateRange.end || saleDate <= dateRange.end);
+
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [salesData, searchQuery, selectedStatuses, dateRange]);
+
+  // Calculate stats from filtered data
   const stats = useMemo(() => {
-    if (!salesData) return { todaySales: 0, ordersToday: 0, pendingOrders: 0, avgOrderValue: 0 };
+    if (!filteredSales) return { todaySales: 0, ordersToday: 0, pendingOrders: 0, avgOrderValue: 0 };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayOrders = salesData.filter((sale) => new Date(sale.created_at) >= today);
+    const todayOrders = filteredSales.filter((sale) => new Date(sale.created_at) >= today);
     const todaySales = todayOrders.reduce((sum, sale) => sum + sale.total_amount, 0);
-    const pendingOrders = salesData.filter((sale) => sale.payment_status === 'pending').length;
-    const avgOrderValue = salesData.length > 0
-      ? salesData.reduce((sum, sale) => sum + sale.total_amount, 0) / salesData.length
+    const pendingOrders = filteredSales.filter((sale) => sale.payment_status === 'pending').length;
+    const avgOrderValue = filteredSales.length > 0
+      ? filteredSales.reduce((sum, sale) => sum + sale.total_amount, 0) / filteredSales.length
       : 0;
 
     return {
@@ -102,18 +142,55 @@ const Sales = () => {
       pendingOrders,
       avgOrderValue: Math.round(avgOrderValue),
     };
-  }, [salesData]);
+  }, [filteredSales]);
 
-  // Filter sales
-  const filteredSales = useMemo(() => {
-    return salesData?.filter((sale) => {
-      const matchesSearch =
-        sale.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.agent_name?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesSearch;
-    });
-  }, [salesData, searchQuery]);
+  const handleDateRangeChange = (start: Date | null, end: Date | null) => {
+    setDateRange({ start, end });
+  };
+
+  const handleExportExcel = () => {
+    if (!filteredSales) return;
+    const data = {
+      title: language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
+      headers: [
+        language === 'en' ? 'Invoice #' : 'رقم الفاتورة',
+        language === 'en' ? 'Customer' : 'العميل',
+        language === 'en' ? 'Agent' : 'المندوب',
+        language === 'en' ? 'Items' : 'العناصر',
+        language === 'en' ? 'Total' : 'الإجمالي',
+        language === 'en' ? 'Status' : 'الحالة',
+        language === 'en' ? 'Date' : 'التاريخ',
+      ],
+      rows: filteredSales.map((sale) => [
+        sale.invoice_number,
+        sale.customer_name || '-',
+        sale.agent_name || '-',
+        sale.item_count,
+        `${sale.total_amount.toLocaleString()} EGP`,
+        paymentStatusConfig[sale.payment_status]?.label[language] || sale.payment_status,
+        formatDateTime(sale.created_at, language),
+      ]),
+    };
+    exportToExcel(data, `sales_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleExportPDF = () => {
+    if (!filteredSales) return;
+    const data = {
+      title: language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
+      headers: ['Invoice #', 'Customer', 'Agent', 'Items', 'Total', 'Status', 'Date'],
+      rows: filteredSales.map((sale) => [
+        sale.invoice_number,
+        sale.customer_name || '-',
+        sale.agent_name || '-',
+        sale.item_count,
+        `${sale.total_amount}`,
+        sale.payment_status,
+        formatDateTime(sale.created_at, 'en'),
+      ]),
+    };
+    exportToPDF(data, `sales_${new Date().toISOString().split('T')[0]}`);
+  };
 
   const hasNoData = !filteredSales || filteredSales.length === 0;
 
@@ -174,18 +251,29 @@ const Sales = () => {
               className={cn("bg-card", isRTL ? 'pr-10' : 'pl-10')}
             />
           </div>
-          <Button variant="outline" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            {language === 'en' ? 'Date Range' : 'نطاق التاريخ'}
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
-            {t('filter')}
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            {t('export')}
-          </Button>
+          <DateRangeFilter onDateRangeChange={handleDateRangeChange} />
+          <StatusFilter
+            options={paymentStatusOptions}
+            selectedValues={selectedStatuses}
+            onSelectionChange={setSelectedStatuses}
+            label={{ en: 'Payment Status', ar: 'حالة الدفع' }}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                {t('export')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-popover z-50">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                {t('exportExcel')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                {t('exportPdf')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Sales Table */}
