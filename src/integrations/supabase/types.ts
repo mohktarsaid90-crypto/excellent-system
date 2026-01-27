@@ -135,7 +135,6 @@ export type Database = {
           last_seen_at: string | null
           monthly_target: number | null
           name: string
-          password_hash: string | null
           phone: string | null
           tons_target: number | null
           updated_at: string
@@ -158,7 +157,6 @@ export type Database = {
           last_seen_at?: string | null
           monthly_target?: number | null
           name: string
-          password_hash?: string | null
           phone?: string | null
           tons_target?: number | null
           updated_at?: string
@@ -181,7 +179,6 @@ export type Database = {
           last_seen_at?: string | null
           monthly_target?: number | null
           name?: string
-          password_hash?: string | null
           phone?: string | null
           tons_target?: number | null
           updated_at?: string
