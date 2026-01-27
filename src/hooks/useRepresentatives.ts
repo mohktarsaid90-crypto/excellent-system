@@ -24,7 +24,6 @@ export interface CreateRepresentativeData {
   email: string;
   phone?: string;
   monthly_target: number;
-  password?: string;
 }
 
 export interface UpdateRepresentativeData {
@@ -57,6 +56,8 @@ export const useRepresentatives = () => {
 
   const createRepresentative = useMutation({
     mutationFn: async (repData: CreateRepresentativeData) => {
+      // SECURITY: Do not store passwords in the agents table
+      // Agent authentication should be handled via Supabase Auth if needed
       const { data, error } = await supabase
         .from('agents')
         .insert({
@@ -64,7 +65,7 @@ export const useRepresentatives = () => {
           email: repData.email,
           phone: repData.phone || null,
           monthly_target: repData.monthly_target,
-          password_hash: repData.password || null,
+          // password_hash is intentionally NOT set - passwords should never be stored in plaintext
         })
         .select()
         .single();
