@@ -153,6 +153,33 @@ const Users = () => {
   };
 
   const handleCreateUser = async () => {
+    // Client-side validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!newUser.full_name.trim()) {
+      toast({
+        title: language === 'en' ? 'Validation Error' : 'خطأ في التحقق',
+        description: language === 'en' ? 'Full name is required' : 'الاسم الكامل مطلوب',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!emailRegex.test(newUser.email.trim())) {
+      toast({
+        title: language === 'en' ? 'Validation Error' : 'خطأ في التحقق',
+        description: language === 'en' ? 'Please enter a valid email address' : 'يرجى إدخال بريد إلكتروني صحيح',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (newUser.password.length < 8) {
+      toast({
+        title: language === 'en' ? 'Validation Error' : 'خطأ في التحقق',
+        description: language === 'en' ? 'Password must be at least 8 characters' : 'يجب أن تكون كلمة المرور 8 أحرف على الأقل',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsCreating(true);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -162,14 +189,19 @@ const Users = () => {
 
       const response = await supabase.functions.invoke('create-admin-user', {
         body: {
-          email: newUser.email,
+          email: newUser.email.trim(),
           password: newUser.password,
-          full_name: newUser.full_name,
+          full_name: newUser.full_name.trim(),
           role: newUser.role,
         },
       });
 
       if (response.error) throw response.error;
+      
+      // Check for error in response data
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
 
       toast({
         title: language === 'en' ? 'Success' : 'تم بنجاح',
