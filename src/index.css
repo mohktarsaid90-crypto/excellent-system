@@ -223,31 +223,54 @@
 
   /* ============================================
      RTL LAYOUT RULES - LOCKED FOR STABILITY
-     These rules handle sidebar positioning in Arabic mode
-     DO NOT MODIFY without testing RTL thoroughly
+     DO NOT MODIFY - These ensure sidebar never overlaps content
+     Last verified: 2026-01-27
      ============================================ */
 
-  /* RTL sidebar positioning */
-  [dir="rtl"] [data-side="right"] {
-    --sidebar-side: right;
+  /* CSS Variables for sidebar offset - used by main content */
+  :root {
+    --app-sidebar-width: 16rem;
+    --app-sidebar-width-collapsed: 3rem;
   }
 
-  [dir="rtl"] [data-side="left"] {
-    --sidebar-side: left;
+  /* LTR: Sidebar on left, content has margin-left */
+  [dir="ltr"] .app-main-content {
+    margin-left: var(--app-sidebar-width);
+    margin-right: 0;
+    transition: margin 0.2s ease-in-out;
   }
 
-  /* Ensure the sidebar spacer works correctly in RTL */
-  [dir="rtl"] .group.peer {
-    order: 1;
+  /* RTL: Sidebar on right, content has margin-right */
+  [dir="rtl"] .app-main-content {
+    margin-right: var(--app-sidebar-width);
+    margin-left: 0;
+    transition: margin 0.2s ease-in-out;
   }
 
-  /* Main content should flow naturally after the spacer */
-  [dir="rtl"] .flex.min-h-screen > .flex-1 {
-    order: 0;
+  /* Mobile: No margin needed - sidebar is overlay */
+  @media (max-width: 767px) {
+    [dir="ltr"] .app-main-content,
+    [dir="rtl"] .app-main-content {
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+
+  /* Force sidebar to correct side based on direction */
+  [dir="rtl"] .group.peer > div:last-child,
+  [dir="rtl"] [data-sidebar="sidebar"] {
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  [dir="ltr"] .group.peer > div:last-child,
+  [dir="ltr"] [data-sidebar="sidebar"] {
+    left: 0 !important;
+    right: auto !important;
   }
 
   /* ============================================
-     END RTL LAYOUT RULES
+     END RTL LAYOUT RULES - DO NOT MODIFY ABOVE
      ============================================ */
 
   /* RTL transitions */
