@@ -915,6 +915,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_agent_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["admin_role"]
@@ -923,9 +924,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_agent: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      admin_role: "it_admin" | "sales_manager" | "accountant" | "company_owner"
+      admin_role:
+        | "it_admin"
+        | "sales_manager"
+        | "accountant"
+        | "company_owner"
+        | "agent"
       customer_classification: "retail" | "key_retail" | "modern_trade"
     }
     CompositeTypes: {
@@ -1054,7 +1061,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      admin_role: ["it_admin", "sales_manager", "accountant", "company_owner"],
+      admin_role: [
+        "it_admin",
+        "sales_manager",
+        "accountant",
+        "company_owner",
+        "agent",
+      ],
       customer_classification: ["retail", "key_retail", "modern_trade"],
     },
   },

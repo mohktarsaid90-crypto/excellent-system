@@ -5,9 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AgentAuthProvider } from "@/contexts/AgentAuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AgentProtectedRoute } from "@/components/agent/AgentProtectedRoute";
 
-// Pages
+// Admin Pages
 import Login from "./pages/Login";
 import Unauthorized from "./pages/Unauthorized";
 import Index from "./pages/Index";
@@ -21,7 +23,7 @@ import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
-// New ERP Pages
+// ERP Pages
 import AgentManagement from "./pages/AgentManagement";
 import AgentDetail from "./pages/AgentDetail";
 import LoadManagement from "./pages/LoadManagement";
@@ -29,81 +31,153 @@ import Reconciliation from "./pages/Reconciliation";
 import InvoiceCenter from "./pages/InvoiceCenter";
 import LiveMap from "./pages/LiveMap";
 
+// Agent Mobile Pages
+import AgentLogin from "./pages/agent/AgentLogin";
+import AgentDashboard from "./pages/agent/AgentDashboard";
+import AgentVisit from "./pages/agent/AgentVisit";
+import AgentSale from "./pages/agent/AgentSale";
+import AgentTargets from "./pages/agent/AgentTargets";
+import AgentInventory from "./pages/agent/AgentInventory";
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
       <BrowserRouter>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/unauthorized" element={<Unauthorized />} />
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            {/* ===== AGENT MOBILE ROUTES ===== */}
+            <Route path="/agent-login" element={
+              <AgentAuthProvider>
+                <AgentLogin />
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentDashboard />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent/visit" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentVisit />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent/sale" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentSale />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent/targets" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentTargets />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
+            <Route path="/agent/inventory" element={
+              <AgentAuthProvider>
+                <AgentProtectedRoute>
+                  <AgentInventory />
+                </AgentProtectedRoute>
+              </AgentAuthProvider>
+            } />
 
-              {/* Protected Routes - All Admins */}
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-              <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-              <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
-              <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-              <Route path="/representatives" element={<ProtectedRoute><Representatives /></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            {/* ===== ADMIN ROUTES ===== */}
+            <Route path="/login" element={
+              <AuthProvider>
+                <Login />
+              </AuthProvider>
+            } />
+            <Route path="/unauthorized" element={
+              <AuthProvider>
+                <Unauthorized />
+              </AuthProvider>
+            } />
 
-              {/* IT Admin & Sales Manager Routes */}
-              <Route path="/agents" element={
+            {/* Protected Admin Routes - All Admins */}
+            <Route path="/" element={<AuthProvider><ProtectedRoute><Index /></ProtectedRoute></AuthProvider>} />
+            <Route path="/inventory" element={<AuthProvider><ProtectedRoute><Inventory /></ProtectedRoute></AuthProvider>} />
+            <Route path="/products" element={<AuthProvider><ProtectedRoute><Products /></ProtectedRoute></AuthProvider>} />
+            <Route path="/sales" element={<AuthProvider><ProtectedRoute><Sales /></ProtectedRoute></AuthProvider>} />
+            <Route path="/customers" element={<AuthProvider><ProtectedRoute><Customers /></ProtectedRoute></AuthProvider>} />
+            <Route path="/representatives" element={<AuthProvider><ProtectedRoute><Representatives /></ProtectedRoute></AuthProvider>} />
+            <Route path="/reports" element={<AuthProvider><ProtectedRoute><Reports /></ProtectedRoute></AuthProvider>} />
+
+            {/* IT Admin & Sales Manager Routes */}
+            <Route path="/agents" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
                   <AgentManagement />
                 </ProtectedRoute>
-              } />
-              <Route path="/agents/:id" element={
+              </AuthProvider>
+            } />
+            <Route path="/agents/:id" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
                   <AgentDetail />
                 </ProtectedRoute>
-              } />
-              <Route path="/load-management" element={
+              </AuthProvider>
+            } />
+            <Route path="/load-management" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
                   <LoadManagement />
                 </ProtectedRoute>
-              } />
-              <Route path="/live-map" element={
+              </AuthProvider>
+            } />
+            <Route path="/live-map" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'sales_manager']}>
                   <LiveMap />
                 </ProtectedRoute>
-              } />
+              </AuthProvider>
+            } />
 
-              {/* IT Admin & Accountant Routes */}
-              <Route path="/reconciliation" element={
+            {/* IT Admin & Accountant Routes */}
+            <Route path="/reconciliation" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'accountant']}>
                   <Reconciliation />
                 </ProtectedRoute>
-              } />
-              <Route path="/invoices" element={
+              </AuthProvider>
+            } />
+            <Route path="/invoices" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['it_admin', 'accountant']}>
                   <InvoiceCenter />
                 </ProtectedRoute>
-              } />
+              </AuthProvider>
+            } />
 
-              {/* Company Owner & IT Admin Only Routes */}
-              <Route path="/settings" element={
+            {/* Company Owner & IT Admin Only Routes */}
+            <Route path="/settings" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['company_owner', 'it_admin']}>
                   <Settings />
                 </ProtectedRoute>
-              } />
-              <Route path="/users" element={
+              </AuthProvider>
+            } />
+            <Route path="/users" element={
+              <AuthProvider>
                 <ProtectedRoute allowedRoles={['company_owner', 'it_admin']}>
                   <Users />
                 </ProtectedRoute>
-              } />
+              </AuthProvider>
+            } />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </AuthProvider>
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
       </BrowserRouter>
     </LanguageProvider>
   </QueryClientProvider>
