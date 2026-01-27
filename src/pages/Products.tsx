@@ -4,7 +4,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Grid3X3, List, Package, Loader2, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Search, Grid3X3, List, Package, Loader2, Pencil, Trash2, MoreVertical, Download } from 'lucide-react';
+import { exportToExcel } from '@/lib/export';
+import { exportTableToPDF } from '@/lib/pdfExport';
 import { cn } from '@/lib/utils';
 import { useProducts, CreateProductData, UpdateProductData } from '@/hooks/useProducts';
 import {
@@ -84,6 +86,80 @@ const Products = () => {
     if (stock === null || stock === 0) return 'out_of_stock';
     if (minStock !== null && stock < minStock) return 'low_stock';
     return 'in_stock';
+  };
+
+  const getStockStatusLabel = (status: string) => {
+    const option = stockStatusOptions.find(o => o.value === status);
+    return option ? (language === 'en' ? option.labelEn : option.labelAr) : '-';
+  };
+
+  const handleExportExcel = () => {
+    if (!filteredProducts) return;
+    
+    const data = {
+      title: language === 'en' ? 'Products Catalog' : 'كتالوج المنتجات',
+      headers: [
+        language === 'en' ? 'SKU' : 'رمز المنتج',
+        language === 'en' ? 'Product Name' : 'اسم المنتج',
+        language === 'en' ? 'Category' : 'الفئة',
+        language === 'en' ? 'Unit Price' : 'سعر الوحدة',
+        language === 'en' ? 'Carton Price' : 'سعر الكرتونة',
+        language === 'en' ? 'Pcs/Carton' : 'قطع/كرتونة',
+        language === 'en' ? 'Stock Qty' : 'الكمية',
+        language === 'en' ? 'Status' : 'الحالة',
+      ],
+      rows: filteredProducts.map(p => {
+        const status = getStockStatus(p.stock_quantity, p.min_stock_level);
+        return [
+          p.sku,
+          language === 'en' ? p.name_en : p.name_ar,
+          p.category || '-',
+          `${p.unit_price.toLocaleString()} EGP`,
+          `${(p.carton_price || 0).toLocaleString()} EGP`,
+          p.pieces_per_carton || 1,
+          p.stock_quantity || 0,
+          getStockStatusLabel(status),
+        ];
+      }),
+    };
+    
+    exportToExcel(data, `products_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleExportPDF = async () => {
+    if (!filteredProducts) return;
+    
+    const data = {
+      title: '',
+      headers: [
+        language === 'en' ? 'SKU' : 'رمز المنتج',
+        language === 'en' ? 'Product Name' : 'اسم المنتج',
+        language === 'en' ? 'Category' : 'الفئة',
+        language === 'en' ? 'Unit Price' : 'سعر الوحدة',
+        language === 'en' ? 'Carton Price' : 'سعر الكرتونة',
+        language === 'en' ? 'Stock Qty' : 'الكمية',
+        language === 'en' ? 'Status' : 'الحالة',
+      ],
+      rows: filteredProducts.map(p => {
+        const status = getStockStatus(p.stock_quantity, p.min_stock_level);
+        return [
+          p.sku,
+          language === 'en' ? p.name_en : p.name_ar,
+          p.category || '-',
+          `${p.unit_price.toLocaleString()} ج.م`,
+          `${(p.carton_price || 0).toLocaleString()} ج.م`,
+          p.stock_quantity || 0,
+          getStockStatusLabel(status),
+        ];
+      }),
+    };
+    
+    await exportTableToPDF(
+      language === 'en' ? 'Products Catalog' : 'كتالوج المنتجات',
+      data,
+      `products_${new Date().toISOString().split('T')[0]}`,
+      language
+    );
   };
 
   const filteredProducts = useMemo(() => {
@@ -205,13 +281,31 @@ const Products = () => {
               />
             )}
           </div>
-          <div className="flex gap-1 bg-muted p-1 rounded-lg">
-            <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
-              <List className="h-4 w-4" />
-            </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  {t('export')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-popover z-50">
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  {t('exportExcel')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  {t('exportPdf')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="flex gap-1 bg-muted p-1 rounded-lg">
+              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
