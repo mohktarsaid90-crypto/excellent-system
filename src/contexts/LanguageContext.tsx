@@ -180,7 +180,7 @@ export const translations: Translations = {
   exportPdf: { en: 'Export to PDF', ar: 'تصدير إلى PDF' },
   
   // Currency
-  sar: { en: 'SAR', ar: 'ر.س' },
+  sar: { en: 'EGP', ar: 'ج.م' },
   
   // Language
   language: { en: 'Language', ar: 'اللغة' },

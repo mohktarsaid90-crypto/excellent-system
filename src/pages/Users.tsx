@@ -96,9 +96,14 @@ const Users = () => {
     }
   }, [selectedUser, allPermissions]);
 
+  // System admin email to hide from the list
+  const SYSTEM_ADMIN_EMAIL = 'admin@mano.com';
+  
   const filteredUsers = users?.filter(user =>
-    user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    // Hide system admin from all users
+    user.email.toLowerCase() !== SYSTEM_ADMIN_EMAIL.toLowerCase() &&
+    (user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const openEditDialog = (user: any) => {
