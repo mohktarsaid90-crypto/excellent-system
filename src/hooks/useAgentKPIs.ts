@@ -51,10 +51,10 @@ export const useAgentKPIs = (agentId: string, dateRange?: DateRange) => {
       const startDate = dateRange?.from || new Date(now.getFullYear(), now.getMonth(), 1);
       const endDate = dateRange?.to || new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      // Fetch agent details for target
+      // Fetch agent details for targets
       const { data: agent } = await supabase
         .from('agents')
-        .select('monthly_target, current_sales')
+        .select('monthly_target, current_sales, cartons_target, tons_target')
         .eq('id', agentId)
         .maybeSingle();
 
@@ -97,19 +97,19 @@ export const useAgentKPIs = (agentId: string, dateRange?: DateRange) => {
       const strikeRate = totalVisits > 0 ? (successfulVisits / totalVisits) * 100 : 0;
       const dropSize = totalInvoices > 0 ? totalSalesValue / totalInvoices : 0;
 
-      // Target calculations
+      // Target calculations using actual database values
       const targetValue = agent?.monthly_target || 0;
       const actualValue = totalSalesValue;
       const targetProgress = targetValue > 0 ? (actualValue / targetValue) * 100 : 0;
 
-      // Cartons - estimate based on items sold (assuming pieces_per_carton from products)
-      const targetCartons = Math.round(targetValue / 100); // Rough estimate
+      // Cartons - use actual target from database
+      const targetCartons = agent?.cartons_target || 0;
       const actualCartons = totalQuantity;
       const cartonsProgress = targetCartons > 0 ? (actualCartons / targetCartons) * 100 : 0;
 
-      // Tons - estimate (0.5kg per item average)
-      const targetTons = targetCartons * 0.5 / 1000;
-      const actualTons = actualCartons * 0.5 / 1000;
+      // Tons - use actual target from database
+      const targetTons = agent?.tons_target || 0;
+      const actualTons = actualCartons * 0.5 / 1000; // Estimate 0.5kg per item
       const tonsProgress = targetTons > 0 ? (actualTons / targetTons) * 100 : 0;
 
       return {
