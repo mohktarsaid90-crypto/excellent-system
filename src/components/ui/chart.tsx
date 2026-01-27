@@ -58,6 +58,14 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+/**
+ * SECURITY: This component uses dangerouslySetInnerHTML for CSS injection.
+ * Only use with trusted, static color values. Never pass user-controlled
+ * data into ChartConfig.color or ChartConfig.theme properties.
+ * 
+ * Safe: config={{ sales: { color: "hsl(var(--chart-1))" } }}
+ * Unsafe: config={{ sales: { color: userInput } }}
+ */
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
