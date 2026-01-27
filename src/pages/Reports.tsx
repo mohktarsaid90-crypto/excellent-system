@@ -1,194 +1,227 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { BarChart3, TrendingUp, Users, Package, FileText, Download, Calendar, Printer, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart3, TrendingUp, Users, Package, FileDown, Loader2, ArrowLeft, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { exportToExcel, exportToPDF, formatCurrency, formatDate } from '@/lib/export';
-import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { DateRangePicker } from '@/components/reports/DateRangePicker';
+import { SalesReportView } from '@/components/reports/SalesReportView';
+import { AgentPerformanceView } from '@/components/reports/AgentPerformanceView';
+import { CustomerAnalysisView } from '@/components/reports/CustomerAnalysisView';
+import { InventoryReportView } from '@/components/reports/InventoryReportView';
+import { 
+  DateRange, 
+  useSalesReport, 
+  useAgentPerformanceReport, 
+  useCustomerAnalysisReport, 
+  useInventoryReport 
+} from '@/hooks/useReportsData';
+import { exportSummaryToPDF } from '@/lib/arabicPdfExport';
+
+type ReportType = 'sales' | 'agents' | 'customers' | 'inventory' | null;
 
 const reportTypes = [
   { 
-    key: 'sales_report', 
+    key: 'sales' as ReportType, 
     icon: BarChart3, 
     title: { en: 'Sales Report', ar: 'تقرير المبيعات' },
-    description: { en: 'Overview of sales performance by period', ar: 'نظرة عامة على أداء المبيعات حسب الفترة' },
-    color: 'bg-primary/10 text-primary'
+    description: { en: 'Revenue, invoices, and payment status', ar: 'الإيرادات والفواتير وحالة الدفع' },
+    color: 'bg-primary/10 text-primary hover:bg-primary/20'
   },
   { 
-    key: 'rep_performance', 
+    key: 'agents' as ReportType, 
     icon: TrendingUp, 
-    title: { en: 'Rep Performance', ar: 'أداء المندوبين' },
-    description: { en: 'Individual and team performance metrics', ar: 'مقاييس الأداء الفردي والجماعي' },
-    color: 'bg-success/10 text-success'
+    title: { en: 'Agent Performance', ar: 'أداء المندوبين' },
+    description: { en: 'Productivity, strike rate, drop size', ar: 'الإنتاجية ومعدل النجاح ومتوسط البيع' },
+    color: 'bg-success/10 text-success hover:bg-success/20'
   },
   { 
-    key: 'customer_analysis', 
+    key: 'customers' as ReportType, 
     icon: Users, 
     title: { en: 'Customer Analysis', ar: 'تحليل العملاء' },
-    description: { en: 'Customer behavior and purchase patterns', ar: 'سلوك العملاء وأنماط الشراء' },
-    color: 'bg-info/10 text-info'
+    description: { en: 'Categories and withdrawal patterns', ar: 'التصنيفات وأنماط السحب' },
+    color: 'bg-info/10 text-info hover:bg-info/20'
   },
   { 
-    key: 'inventory_report', 
+    key: 'inventory' as ReportType, 
     icon: Package, 
     title: { en: 'Inventory Report', ar: 'تقرير المخزون' },
-    description: { en: 'Stock levels and movement analysis', ar: 'تحليل مستويات وحركة المخزون' },
-    color: 'bg-warning/10 text-warning'
+    description: { en: 'Stock, damages, and returns', ar: 'المخزون والتالف والمرتجعات' },
+    color: 'bg-warning/10 text-warning hover:bg-warning/20'
   },
 ];
 
 const Reports = () => {
-  const { t, language, isRTL } = useLanguage();
-  const [isGenerating, setIsGenerating] = useState<string | null>(null);
-
-  // Fetch recent invoices for reports
-  const { data: recentInvoices, isLoading } = useQuery({
-    queryKey: ['recent-invoices-reports'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          id,
-          invoice_number,
-          total_amount,
-          created_at,
-          payment_status,
-          customers (name),
-          agents (name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      return data;
-    },
+  const { t, language } = useLanguage();
+  const [selectedReport, setSelectedReport] = useState<ReportType>(null);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
   });
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // Fetch summary stats
-  const { data: stats } = useQuery({
-    queryKey: ['report-stats'],
-    queryFn: async () => {
-      const [invoicesRes, customersRes, productsRes, agentsRes] = await Promise.all([
-        supabase.from('invoices').select('total_amount, vat_amount'),
-        supabase.from('customers').select('*', { count: 'exact', head: true }),
-        supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('agents').select('current_sales, monthly_target'),
-      ]);
+  // Fetch data for each report type
+  const salesReport = useSalesReport(dateRange);
+  const agentReport = useAgentPerformanceReport(dateRange);
+  const customerReport = useCustomerAnalysisReport(dateRange);
+  const inventoryReport = useInventoryReport();
 
-      return {
-        totalRevenue: invoicesRes.data?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0,
-        totalVAT: invoicesRes.data?.reduce((sum, inv) => sum + (inv.vat_amount || 0), 0) || 0,
-        invoiceCount: invoicesRes.data?.length || 0,
-        customerCount: customersRes.count || 0,
-        productCount: productsRes.count || 0,
-        agents: agentsRes.data || [],
-      };
-    },
-  });
-
-  const handleGenerateReport = async (reportKey: string) => {
-    setIsGenerating(reportKey);
+  const handleGeneratePDF = async () => {
+    setIsGeneratingPdf(true);
     
     try {
-      let data;
-      const today = new Date().toISOString().split('T')[0];
+      const dateStr = `${format(dateRange.from, 'yyyy-MM-dd')}_${format(dateRange.to, 'yyyy-MM-dd')}`;
       
-      switch (reportKey) {
-        case 'sales_report':
-          data = {
-            title: language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
-            headers: [
-              language === 'en' ? 'Invoice #' : 'رقم الفاتورة',
-              language === 'en' ? 'Customer' : 'العميل',
-              language === 'en' ? 'Agent' : 'المندوب',
-              language === 'en' ? 'Amount' : 'المبلغ',
-              language === 'en' ? 'Status' : 'الحالة',
-              language === 'en' ? 'Date' : 'التاريخ',
-            ],
-            rows: recentInvoices?.map(inv => [
-              inv.invoice_number,
-              (inv.customers as any)?.name || '-',
-              (inv.agents as any)?.name || '-',
-              `${inv.total_amount.toFixed(2)} EGP`,
-              inv.payment_status || 'pending',
-              formatDate(inv.created_at, language),
-            ]) || [],
-          };
-          exportToPDF(data, `sales_report_${today}`);
+      switch (selectedReport) {
+        case 'sales':
+          if (salesReport.data) {
+            const summaryItems = [
+              { label: language === 'en' ? 'Total Revenue' : 'إجمالي الإيرادات', value: `${salesReport.data.totals.totalRevenue.toLocaleString()} ج.م` },
+              { label: language === 'en' ? 'VAT Collected' : 'الضريبة المحصلة', value: `${salesReport.data.totals.totalVat.toLocaleString()} ج.م` },
+              { label: language === 'en' ? 'Total Discounts' : 'إجمالي الخصومات', value: `${salesReport.data.totals.totalDiscount.toLocaleString()} ج.م` },
+              { label: language === 'en' ? 'Invoices' : 'الفواتير', value: salesReport.data.totals.invoiceCount },
+            ];
+            
+            exportSummaryToPDF(
+              language === 'en' ? 'Sales Report' : 'تقرير المبيعات',
+              summaryItems,
+              {
+                title: '',
+                headers: [
+                  language === 'en' ? 'Invoice #' : 'رقم الفاتورة',
+                  language === 'en' ? 'Customer' : 'العميل',
+                  language === 'en' ? 'Agent' : 'المندوب',
+                  language === 'en' ? 'Amount' : 'المبلغ',
+                  language === 'en' ? 'Status' : 'الحالة',
+                ],
+                rows: salesReport.data.data.map(r => [
+                  r.invoiceNumber,
+                  r.customerName,
+                  r.agentName,
+                  `${r.amount.toLocaleString()} ج.م`,
+                  r.paymentStatus,
+                ]),
+              },
+              `sales_report_${dateStr}`,
+              language
+            );
+          }
           break;
 
-        case 'rep_performance':
-          data = {
-            title: language === 'en' ? 'Rep Performance Report' : 'تقرير أداء المندوبين',
-            headers: [
-              language === 'en' ? 'Agent' : 'المندوب',
-              language === 'en' ? 'Current Sales' : 'المبيعات الحالية',
-              language === 'en' ? 'Target' : 'الهدف',
-              language === 'en' ? 'Achievement %' : 'نسبة التحقيق',
-            ],
-            rows: stats?.agents?.map((agent: any) => [
-              agent.name || '-',
-              `${(agent.current_sales || 0).toFixed(2)} EGP`,
-              `${(agent.monthly_target || 0).toFixed(2)} EGP`,
-              agent.monthly_target ? `${((agent.current_sales / agent.monthly_target) * 100).toFixed(1)}%` : '0%',
-            ]) || [],
-          };
-          exportToPDF(data, `rep_performance_${today}`);
+        case 'agents':
+          if (agentReport.data) {
+            const summaryItems = [
+              { label: language === 'en' ? 'Active Agents' : 'المندوبين النشطين', value: agentReport.data.totals.totalAgents },
+              { label: language === 'en' ? 'Avg Achievement' : 'متوسط الإنجاز', value: `${agentReport.data.totals.avgAchievement.toFixed(1)}%` },
+              { label: language === 'en' ? 'Avg Productivity' : 'متوسط الإنتاجية', value: agentReport.data.totals.avgProductivity.toFixed(2) },
+              { label: language === 'en' ? 'Avg Strike Rate' : 'معدل النجاح', value: `${agentReport.data.totals.avgStrikeRate.toFixed(1)}%` },
+            ];
+            
+            exportSummaryToPDF(
+              language === 'en' ? 'Agent Performance Report' : 'تقرير أداء المندوبين',
+              summaryItems,
+              {
+                title: '',
+                headers: [
+                  language === 'en' ? 'Agent' : 'المندوب',
+                  language === 'en' ? 'Target' : 'الهدف',
+                  language === 'en' ? 'Sales' : 'المبيعات',
+                  language === 'en' ? 'Achievement' : 'الإنجاز',
+                  language === 'en' ? 'Productivity' : 'الإنتاجية',
+                  language === 'en' ? 'Strike Rate' : 'معدل النجاح',
+                ],
+                rows: agentReport.data.data.map(r => [
+                  r.agentName,
+                  `${r.monthlyTarget.toLocaleString()} ج.م`,
+                  `${r.currentSales.toLocaleString()} ج.م`,
+                  `${r.achievementPercent.toFixed(1)}%`,
+                  r.productivity.toFixed(2),
+                  `${r.strikeRate.toFixed(1)}%`,
+                ]),
+              },
+              `agent_performance_${dateStr}`,
+              language
+            );
+          }
           break;
 
-        case 'customer_analysis':
-          const { data: customers } = await supabase
-            .from('customers')
-            .select('name, classification, city, credit_limit, current_balance')
-            .limit(50);
-          
-          data = {
-            title: language === 'en' ? 'Customer Analysis Report' : 'تقرير تحليل العملاء',
-            headers: [
-              language === 'en' ? 'Customer' : 'العميل',
-              language === 'en' ? 'Classification' : 'التصنيف',
-              language === 'en' ? 'City' : 'المدينة',
-              language === 'en' ? 'Credit Limit' : 'حد الائتمان',
-              language === 'en' ? 'Balance' : 'الرصيد',
-            ],
-            rows: customers?.map(c => [
-              c.name,
-              c.classification || 'retail',
-              c.city || '-',
-              `${(c.credit_limit || 0).toFixed(2)} EGP`,
-              `${(c.current_balance || 0).toFixed(2)} EGP`,
-            ]) || [],
-          };
-          exportToPDF(data, `customer_analysis_${today}`);
+        case 'customers':
+          if (customerReport.data) {
+            const summaryItems = [
+              { label: language === 'en' ? 'Total Customers' : 'إجمالي العملاء', value: customerReport.data.totals.totalCustomers },
+              { label: language === 'en' ? 'Total Purchases' : 'إجمالي المشتريات', value: `${customerReport.data.totals.totalPurchases.toLocaleString()} ج.م` },
+              { label: language === 'en' ? 'Total Invoices' : 'إجمالي الفواتير', value: customerReport.data.totals.totalInvoices },
+              { label: language === 'en' ? 'Outstanding Balance' : 'الرصيد المستحق', value: `${customerReport.data.totals.totalBalance.toLocaleString()} ج.م` },
+            ];
+            
+            exportSummaryToPDF(
+              language === 'en' ? 'Customer Analysis Report' : 'تقرير تحليل العملاء',
+              summaryItems,
+              {
+                title: '',
+                headers: [
+                  language === 'en' ? 'Customer' : 'العميل',
+                  language === 'en' ? 'Classification' : 'التصنيف',
+                  language === 'en' ? 'City' : 'المدينة',
+                  language === 'en' ? 'Credit Limit' : 'حد الائتمان',
+                  language === 'en' ? 'Balance' : 'الرصيد',
+                ],
+                rows: customerReport.data.data.map(r => [
+                  r.name,
+                  r.classification,
+                  r.city,
+                  `${r.creditLimit.toLocaleString()} ج.م`,
+                  `${r.currentBalance.toLocaleString()} ج.م`,
+                ]),
+              },
+              `customer_analysis_${dateStr}`,
+              language
+            );
+          }
           break;
 
-        case 'inventory_report':
-          const { data: products } = await supabase
-            .from('products')
-            .select('sku, name_en, name_ar, category, stock_quantity, min_stock_level, unit_price, carton_price, pieces_per_carton')
-            .eq('is_active', true);
-          
-          data = {
-            title: language === 'en' ? 'Inventory Report' : 'تقرير المخزون',
-            headers: ['SKU', language === 'en' ? 'Product' : 'المنتج', language === 'en' ? 'Stock' : 'المخزون', language === 'en' ? 'Min Level' : 'الحد الأدنى', language === 'en' ? 'Unit Price' : 'سعر الوحدة'],
-            rows: products?.map(p => [
-              p.sku,
-              language === 'en' ? p.name_en : p.name_ar,
-              p.stock_quantity || 0,
-              p.min_stock_level || 0,
-              `${p.unit_price.toFixed(2)} EGP`,
-            ]) || [],
-          };
-          exportToPDF(data, `inventory_report_${today}`);
+        case 'inventory':
+          if (inventoryReport.data) {
+            const summaryItems = [
+              { label: language === 'en' ? 'Total Products' : 'إجمالي المنتجات', value: inventoryReport.data.totals.totalProducts },
+              { label: language === 'en' ? 'Stock Value' : 'قيمة المخزون', value: `${inventoryReport.data.totals.totalStockValue.toLocaleString()} ج.م` },
+              { label: language === 'en' ? 'Low Stock' : 'منخفض المخزون', value: inventoryReport.data.totals.lowStockCount },
+              { label: language === 'en' ? 'Damaged' : 'التالف', value: inventoryReport.data.totals.totalDamaged },
+            ];
+            
+            exportSummaryToPDF(
+              language === 'en' ? 'Inventory Report' : 'تقرير المخزون',
+              summaryItems,
+              {
+                title: '',
+                headers: [
+                  'SKU',
+                  language === 'en' ? 'Product' : 'المنتج',
+                  language === 'en' ? 'Stock' : 'المخزون',
+                  language === 'en' ? 'Min Level' : 'الحد الأدنى',
+                  language === 'en' ? 'Value' : 'القيمة',
+                ],
+                rows: inventoryReport.data.data.map(r => [
+                  r.sku,
+                  language === 'en' ? r.nameEn : r.nameAr || r.nameEn,
+                  r.stockQuantity,
+                  r.minStockLevel,
+                  `${r.stockValue.toLocaleString()} ج.م`,
+                ]),
+              },
+              `inventory_report_${dateStr}`,
+              language
+            );
+          }
           break;
       }
 
       toast({
         title: language === 'en' ? 'Report Generated' : 'تم إنشاء التقرير',
-        description: language === 'en' ? 'Your report has been downloaded' : 'تم تحميل التقرير',
+        description: language === 'en' ? 'PDF has been downloaded' : 'تم تحميل ملف PDF',
       });
     } catch (error: any) {
       toast({
@@ -197,152 +230,113 @@ const Reports = () => {
         variant: 'destructive',
       });
     } finally {
-      setIsGenerating(null);
+      setIsGeneratingPdf(false);
     }
   };
 
-  const handlePrintSummary = () => {
-    const summaryData = {
-      title: language === 'en' ? 'Business Summary Report' : 'ملخص الأعمال',
-      headers: [
-        language === 'en' ? 'Metric' : 'المقياس',
-        language === 'en' ? 'Value' : 'القيمة',
-      ],
-      rows: [
-        [language === 'en' ? 'Total Revenue' : 'إجمالي الإيرادات', `${stats?.totalRevenue?.toLocaleString() || 0} EGP`],
-        [language === 'en' ? 'Total VAT Collected' : 'إجمالي الضريبة', `${stats?.totalVAT?.toLocaleString() || 0} EGP`],
-        [language === 'en' ? 'Total Invoices' : 'إجمالي الفواتير', stats?.invoiceCount?.toString() || '0'],
-        [language === 'en' ? 'Total Customers' : 'إجمالي العملاء', stats?.customerCount?.toString() || '0'],
-        [language === 'en' ? 'Total Products' : 'إجمالي المنتجات', stats?.productCount?.toString() || '0'],
-      ],
-    };
-    
-    exportToPDF(summaryData, `business_summary_${new Date().toISOString().split('T')[0]}`);
-    
-    toast({
-      title: language === 'en' ? 'Summary Printed' : 'تم طباعة الملخص',
-      description: language === 'en' ? 'Business summary has been downloaded' : 'تم تحميل ملخص الأعمال',
-    });
-  };
+  const isLoading = salesReport.isLoading || agentReport.isLoading || customerReport.isLoading || inventoryReport.isLoading;
 
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
-              {t('reports')}
-            </h1>
-            <p className="text-muted-foreground">
-              {language === 'en' 
-                ? 'Generate and view business analytics reports'
-                : 'إنشاء وعرض تقارير تحليلات الأعمال'
-              }
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={handlePrintSummary}>
-              <Printer className="h-4 w-4" />
-              {language === 'en' ? 'Print Summary' : 'طباعة الملخص'}
-            </Button>
-            <Button className="gap-2 bg-primary hover:bg-primary/90">
-              <Calendar className="h-4 w-4" />
-              {language === 'en' ? 'Schedule Report' : 'جدولة تقرير'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl bg-card p-4 shadow-sm">
-            <p className="text-sm text-muted-foreground">{language === 'en' ? 'Total Revenue' : 'إجمالي الإيرادات'}</p>
-            <p className="text-2xl font-bold text-primary">{stats?.totalRevenue?.toLocaleString() || 0} {t('sar')}</p>
-          </div>
-          <div className="rounded-xl bg-card p-4 shadow-sm">
-            <p className="text-sm text-muted-foreground">{language === 'en' ? 'Total Invoices' : 'إجمالي الفواتير'}</p>
-            <p className="text-2xl font-bold">{stats?.invoiceCount || 0}</p>
-          </div>
-          <div className="rounded-xl bg-card p-4 shadow-sm">
-            <p className="text-sm text-muted-foreground">{language === 'en' ? 'Total Customers' : 'إجمالي العملاء'}</p>
-            <p className="text-2xl font-bold">{stats?.customerCount || 0}</p>
-          </div>
-          <div className="rounded-xl bg-card p-4 shadow-sm">
-            <p className="text-sm text-muted-foreground">{language === 'en' ? 'VAT Collected' : 'الضريبة المحصلة'}</p>
-            <p className="text-2xl font-bold text-success">{stats?.totalVAT?.toLocaleString() || 0} {t('sar')}</p>
-          </div>
-        </div>
-
-        {/* Report Types Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {reportTypes.map((report) => (
-            <div key={report.key} className="group rounded-xl bg-card p-6 shadow-sm card-hover cursor-pointer">
-              <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl mb-4", report.color)}>
-                <report.icon className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-foreground mb-2">{report.title[language]}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{report.description[language]}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => handleGenerateReport(report.key)}
-                disabled={isGenerating === report.key}
-              >
-                {isGenerating === report.key ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  language === 'en' ? 'Generate' : 'إنشاء'
-                )}
+          <div className="flex items-center gap-4">
+            {selectedReport && (
+              <Button variant="ghost" size="icon" onClick={() => setSelectedReport(null)}>
+                <ArrowLeft className="h-5 w-5" />
               </Button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground lg:text-3xl">
+                {selectedReport 
+                  ? reportTypes.find(r => r.key === selectedReport)?.title[language]
+                  : t('reports')
+                }
+              </h1>
+              <p className="text-muted-foreground">
+                {selectedReport
+                  ? reportTypes.find(r => r.key === selectedReport)?.description[language]
+                  : (language === 'en' 
+                    ? 'Generate and view business analytics reports'
+                    : 'إنشاء وعرض تقارير تحليلات الأعمال'
+                  )
+                }
+              </p>
             </div>
-          ))}
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="rounded-xl bg-card p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-foreground">
-              {language === 'en' ? 'Recent Transactions' : 'المعاملات الأخيرة'}
-            </h3>
-            <Button variant="ghost" size="sm">
-              {t('viewAll')}
-            </Button>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {recentInvoices?.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">{t('noData')}</p>
+          {selectedReport && (
+            <Button 
+              className="gap-2 bg-primary hover:bg-primary/90" 
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPdf || isLoading}
+            >
+              {isGeneratingPdf ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                recentInvoices?.map((invoice) => (
-                  <div key={invoice.id} className="flex items-center justify-between p-4 rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <FileText className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {invoice.invoice_number} - {(invoice.customers as any)?.name || 'Unknown'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {(invoice.agents as any)?.name || '-'} • {formatDate(invoice.created_at, language)} • {invoice.total_amount.toFixed(2)} {t('sar')}
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))
+                <FileDown className="h-4 w-4" />
               )}
-            </div>
+              {language === 'en' ? 'Download PDF' : 'تحميل PDF'}
+            </Button>
           )}
         </div>
+
+        {/* Date Range Picker - Only show when a report is selected */}
+        {selectedReport && (
+          <div className="rounded-xl bg-card p-4 shadow-sm">
+            <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
+          </div>
+        )}
+
+        {/* Report Selection Grid */}
+        {!selectedReport && (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {reportTypes.map((report) => (
+              <div 
+                key={report.key} 
+                className="group rounded-xl bg-card p-6 shadow-sm card-hover cursor-pointer transition-all"
+                onClick={() => setSelectedReport(report.key)}
+              >
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-xl mb-4 transition-colors", report.color)}>
+                  <report.icon className="h-7 w-7" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2 text-lg">{report.title[language]}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{report.description[language]}</p>
+                <div className="flex items-center text-sm text-primary font-medium">
+                  <FileText className="h-4 w-4 mr-1" />
+                  {language === 'en' ? 'View Report' : 'عرض التقرير'}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Report Content */}
+        {selectedReport && (
+          <div className="rounded-xl bg-card p-6 shadow-sm">
+            {isLoading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {selectedReport === 'sales' && salesReport.data && (
+                  <SalesReportView data={salesReport.data.data} totals={salesReport.data.totals} />
+                )}
+                {selectedReport === 'agents' && agentReport.data && (
+                  <AgentPerformanceView data={agentReport.data.data} totals={agentReport.data.totals} />
+                )}
+                {selectedReport === 'customers' && customerReport.data && (
+                  <CustomerAnalysisView data={customerReport.data.data} totals={customerReport.data.totals} />
+                )}
+                {selectedReport === 'inventory' && inventoryReport.data && (
+                  <InventoryReportView data={inventoryReport.data.data} totals={inventoryReport.data.totals} />
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </AppLayout>
   );
