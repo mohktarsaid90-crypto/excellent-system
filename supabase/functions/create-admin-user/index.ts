@@ -46,16 +46,16 @@ serve(async (req) => {
 
     const requestingUserId = claimsData.claims.sub as string
 
-    // Check if the requesting user has it_admin role
+    // Check if the requesting user has it_admin or company_owner role
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', requestingUserId)
       .single()
 
-    if (roleError || roleData?.role !== 'it_admin') {
+    if (roleError || (roleData?.role !== 'it_admin' && roleData?.role !== 'company_owner')) {
       return new Response(
-        JSON.stringify({ error: 'Forbidden: Only IT Admins can create admin users' }),
+        JSON.stringify({ error: 'Forbidden: Only IT Admins and Company Owners can create admin users' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -88,7 +88,7 @@ serve(async (req) => {
     }
 
     // Validate role
-    const validRoles = ['it_admin', 'sales_manager', 'accountant']
+    const validRoles = ['company_owner', 'it_admin', 'sales_manager', 'accountant']
     if (!validRoles.includes(role)) {
       return new Response(
         JSON.stringify({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` }),

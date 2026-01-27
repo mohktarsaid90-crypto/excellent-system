@@ -81,14 +81,14 @@ const App = () => (
                 </ProtectedRoute>
               } />
 
-              {/* IT Admin Only Routes */}
+              {/* Company Owner & IT Admin Only Routes */}
               <Route path="/settings" element={
-                <ProtectedRoute allowedRoles={['it_admin']}>
+                <ProtectedRoute allowedRoles={['company_owner', 'it_admin']}>
                   <Settings />
                 </ProtectedRoute>
               } />
               <Route path="/users" element={
-                <ProtectedRoute allowedRoles={['it_admin']}>
+                <ProtectedRoute allowedRoles={['company_owner', 'it_admin']}>
                   <Users />
                 </ProtectedRoute>
               } />

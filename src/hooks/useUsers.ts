@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-export type AdminRole = 'it_admin' | 'sales_manager' | 'accountant';
+export type AdminRole = 'company_owner' | 'it_admin' | 'sales_manager' | 'accountant';
 
 export interface UserWithRole {
   id: string;
