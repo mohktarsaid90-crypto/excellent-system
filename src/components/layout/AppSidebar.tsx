@@ -118,14 +118,20 @@ export const AppSidebar = () => {
       className="border-sidebar-border bg-sidebar transition-all duration-300"
     >
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+        <div className="flex items-center gap-3">
+          {/* Logo - Always LTR aligned */}
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground font-bold text-lg shadow-md flex-shrink-0">
             M
           </div>
           {!isCollapsed && (
-            <div className={cn("flex flex-col min-w-0", isRTL && "items-end")}>
-              <span className="font-bold text-lg text-sidebar-foreground truncate">
-                {t('appName')}
+            <div className="flex flex-col min-w-0">
+              {/* Always show Mano ERP in English - force LTR */}
+              <span 
+                className="font-bold text-lg text-sidebar-foreground truncate"
+                dir="ltr"
+                style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+              >
+                Mano ERP
               </span>
               <span className="text-xs text-sidebar-foreground/60 truncate">
                 {t('salesManagement')}

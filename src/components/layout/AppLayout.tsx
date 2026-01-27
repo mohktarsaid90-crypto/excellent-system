@@ -18,16 +18,19 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <SidebarProvider>
+      {/* 
+        The sidebar uses side="right" for RTL which positions it fixed on the right.
+        The spacer div inside Sidebar component creates the gap for the main content.
+        No flex-row-reverse needed - the sidebar handles its own positioning.
+      */}
       <div 
-        className={cn(
-          "flex min-h-screen w-full bg-background",
-          isRTL && "flex-row-reverse"
-        )}
+        className="flex min-h-screen w-full bg-background"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         <AppSidebar />
         
-        <div className="flex flex-1 flex-col min-w-0">
+        {/* Main content wrapper - flex-1 fills remaining space after sidebar spacer */}
+        <div className="flex flex-1 flex-col min-w-0 w-full">
           {/* Top Header */}
           <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-lg px-4 lg:px-6">
             <div className="flex items-center gap-4">
