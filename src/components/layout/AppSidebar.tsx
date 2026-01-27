@@ -122,12 +122,12 @@ export const AppSidebar = () => {
           Last verified: 2026-01-27
           ============================================ */}
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-3" dir="ltr">
+        <div className="bg-[sidebar-primary-foreground] bg-[#1a166f] text-[#ee5858] flex-row flex items-center justify-center gap-[12px] border-[#b70606] border-0 rounded shadow opacity-100" dir="ltr">
           {/* Logo - Fixed English branding */}
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground font-bold text-lg shadow-md flex-shrink-0">
             M
           </div>
-          {!isCollapsed && <div className="flex flex-col min-w-0 font-serif text-base font-extrabold text-justify">
+          {!isCollapsed && <div className="flex flex-col min-w-0 text-left">
               {/* Mano ERP - Always English, Always LTR */}
               <span className="font-bold text-lg text-sidebar-foreground truncate" style={{
             fontFamily: 'Inter, system-ui, sans-serif',
