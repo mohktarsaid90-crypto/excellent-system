@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+export type CustomerClassification = 'retail' | 'key_retail' | 'modern_trade';
+
 export interface Customer {
   id: string;
   name: string;
@@ -15,6 +17,7 @@ export interface Customer {
   assigned_agent_id: string | null;
   location_lat: number | null;
   location_lng: number | null;
+  classification: CustomerClassification | null;
   created_at: string;
 }
 
@@ -26,6 +29,9 @@ export interface CreateCustomerData {
   city?: string;
   credit_limit?: number;
   assigned_agent_id?: string;
+  location_lat?: number;
+  location_lng?: number;
+  classification?: CustomerClassification;
 }
 
 export interface UpdateCustomerData {
@@ -36,6 +42,9 @@ export interface UpdateCustomerData {
   city?: string;
   credit_limit?: number;
   assigned_agent_id?: string;
+  location_lat?: number;
+  location_lng?: number;
+  classification?: CustomerClassification;
 }
 
 export const useCustomers = () => {
@@ -67,6 +76,9 @@ export const useCustomers = () => {
           city: customerData.city || null,
           credit_limit: customerData.credit_limit || 0,
           assigned_agent_id: customerData.assigned_agent_id || null,
+          location_lat: customerData.location_lat || null,
+          location_lng: customerData.location_lng || null,
+          classification: customerData.classification || 'retail',
         })
         .select()
         .single();

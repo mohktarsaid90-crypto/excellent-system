@@ -28,6 +28,7 @@ import {
   useCreateAgent,
   useUpdateAgentPermissions,
   useToggleAgentStatus,
+  useUpdateAgentCreditBalance,
 } from '@/hooks/useAgents';
 import {
   UserPlus,
@@ -40,6 +41,9 @@ import {
   RotateCcw,
   Loader2,
   MapPin,
+  Wallet,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,12 +54,18 @@ const AgentManagement = () => {
   const createAgent = useCreateAgent();
   const updatePermissions = useUpdateAgentPermissions();
   const toggleStatus = useToggleAgentStatus();
+  const updateCreditBalance = useUpdateAgentCreditBalance();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [creditAmount, setCreditAmount] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
   const [newAgent, setNewAgent] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     monthly_target: 0,
   });
@@ -69,9 +79,12 @@ const AgentManagement = () => {
   );
 
   const handleCreateAgent = async () => {
+    if (!newAgent.password || newAgent.password.length < 6) {
+      return;
+    }
     await createAgent.mutateAsync(newAgent);
     setIsAddDialogOpen(false);
-    setNewAgent({ name: '', email: '', phone: '', monthly_target: 0 });
+    setNewAgent({ name: '', email: '', password: '', phone: '', monthly_target: 0 });
   };
 
   const handleTogglePermission = async (
@@ -87,6 +100,22 @@ const AgentManagement = () => {
 
   const handleKillSwitch = async (agentId: string, currentStatus: boolean) => {
     await toggleStatus.mutateAsync({ id: agentId, is_active: !currentStatus });
+  };
+
+  const handleUpdateCreditBalance = async () => {
+    if (!selectedAgent) return;
+    await updateCreditBalance.mutateAsync({
+      id: selectedAgent.id,
+      credit_balance: creditAmount,
+    });
+    setIsCreditDialogOpen(false);
+    setSelectedAgent(null);
+  };
+
+  const openCreditDialog = (agent: any) => {
+    setSelectedAgent(agent);
+    setCreditAmount(agent.credit_balance || 0);
+    setIsCreditDialogOpen(true);
   };
 
   const getPerformanceColor = (current: number, target: number) => {
@@ -140,7 +169,7 @@ const AgentManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{language === 'en' ? 'Email' : 'البريد الإلكتروني'}</Label>
+                    <Label>{language === 'en' ? 'Email (Login)' : 'البريد الإلكتروني (تسجيل الدخول)'}</Label>
                     <Input
                       type="email"
                       value={newAgent.email}
@@ -149,6 +178,34 @@ const AgentManagement = () => {
                       }
                       placeholder="agent@company.com"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{language === 'en' ? 'Password (Mobile App)' : 'كلمة المرور (التطبيق)'}</Label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={newAgent.password}
+                        onChange={(e) =>
+                          setNewAgent({ ...newAgent, password: e.target.value })
+                        }
+                        placeholder={language === 'en' ? 'Min 6 characters' : 'الحد الأدنى 6 أحرف'}
+                        className={cn(isRTL ? 'pl-10' : 'pr-10')}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={cn("absolute top-0 h-full", isRTL ? 'left-0' : 'right-0')}
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {language === 'en' 
+                        ? 'This will be the agent\'s login credentials for the mobile app'
+                        : 'ستكون هذه بيانات دخول المندوب للتطبيق'}
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label>{language === 'en' ? 'Phone' : 'الهاتف'}</Label>
@@ -176,7 +233,7 @@ const AgentManagement = () => {
                   <Button
                     onClick={handleCreateAgent}
                     className="w-full"
-                    disabled={createAgent.isPending}
+                    disabled={createAgent.isPending || !newAgent.password || newAgent.password.length < 6}
                   >
                     {createAgent.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,14 +305,14 @@ const AgentManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {language === 'en' ? 'Deactivated' : 'معطل'}
+                    {language === 'en' ? 'Total Credit Balance' : 'إجمالي رصيد الآجل'}
                   </p>
-                  <p className="text-2xl font-bold text-destructive">
-                    {agents?.filter((a) => !a.is_active).length || 0}
+                  <p className="text-2xl font-bold text-warning">
+                    {agents?.reduce((sum, a) => sum + (a.credit_balance || 0), 0).toLocaleString() || 0} SAR
                   </p>
                 </div>
-                <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-                  <Power className="h-6 w-6 text-destructive" />
+                <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                  <Wallet className="h-6 w-6 text-warning" />
                 </div>
               </div>
             </CardContent>
@@ -304,6 +361,12 @@ const AgentManagement = () => {
                         <div className="flex items-center justify-center gap-1">
                           <Target className="h-4 w-4" />
                           {language === 'en' ? 'Target' : 'الهدف'}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Wallet className="h-4 w-4" />
+                          {language === 'en' ? 'Credit' : 'رصيد الآجل'}
                         </div>
                       </TableHead>
                       <TableHead className="text-center">
@@ -373,6 +436,17 @@ const AgentManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openCreditDialog(agent)}
+                            disabled={!canManageAgents}
+                            className="text-warning hover:text-warning"
+                          >
+                            {Number(agent.credit_balance || 0).toLocaleString()} SAR
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
                           <Switch
                             checked={agent.can_give_discounts}
                             onCheckedChange={() =>
@@ -418,6 +492,45 @@ const AgentManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Credit Balance Dialog */}
+      <Dialog open={isCreditDialogOpen} onOpenChange={setIsCreditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'en' ? 'Update Credit Balance' : 'تحديث رصيد الآجل'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              {language === 'en' 
+                ? `Updating credit balance for: ${selectedAgent?.name}`
+                : `تحديث رصيد الآجل لـ: ${selectedAgent?.name}`}
+            </p>
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Credit Balance (SAR)' : 'رصيد الآجل (ريال)'}</Label>
+              <Input
+                type="number"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <Button
+              onClick={handleUpdateCreditBalance}
+              className="w-full"
+              disabled={updateCreditBalance.isPending}
+            >
+              {updateCreditBalance.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : language === 'en' ? (
+                'Update Balance'
+              ) : (
+                'تحديث الرصيد'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

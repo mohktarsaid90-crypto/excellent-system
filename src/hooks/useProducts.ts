@@ -11,6 +11,8 @@ export interface Product {
   category: string | null;
   unit_price: number;
   cost_price: number | null;
+  carton_price: number | null;
+  pieces_per_carton: number | null;
   stock_quantity: number;
   min_stock_level: number;
   vat_rate: number;
@@ -25,6 +27,8 @@ export interface CreateProductData {
   category?: string;
   unit_price: number;
   cost_price?: number;
+  carton_price?: number;
+  pieces_per_carton?: number;
   stock_quantity?: number;
   min_stock_level?: number;
   vat_rate?: number;
@@ -37,6 +41,8 @@ export interface UpdateProductData {
   category?: string;
   unit_price?: number;
   cost_price?: number;
+  carton_price?: number;
+  pieces_per_carton?: number;
   stock_quantity?: number;
   min_stock_level?: number;
   vat_rate?: number;
@@ -71,6 +77,8 @@ export const useProducts = () => {
           category: productData.category || null,
           unit_price: productData.unit_price,
           cost_price: productData.cost_price || null,
+          carton_price: productData.carton_price || null,
+          pieces_per_carton: productData.pieces_per_carton || 1,
           stock_quantity: productData.stock_quantity || 0,
           min_stock_level: productData.min_stock_level || 10,
           vat_rate: productData.vat_rate || 15,

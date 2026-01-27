@@ -49,8 +49,9 @@ const Products = () => {
     name_en: '',
     name_ar: '',
     category: '',
-    unit_price: 0,
-    cost_price: 0,
+    unit_price: 105,
+    carton_price: 0,
+    pieces_per_carton: 1,
     stock_quantity: 0,
     min_stock_level: 10,
     vat_rate: 15,
@@ -65,7 +66,7 @@ const Products = () => {
   const handleCreateSubmit = async () => {
     await createProduct.mutateAsync(formData);
     setIsCreateDialogOpen(false);
-    setFormData({ sku: '', name_en: '', name_ar: '', category: '', unit_price: 0, cost_price: 0, stock_quantity: 0, min_stock_level: 10, vat_rate: 15 });
+    setFormData({ sku: '', name_en: '', name_ar: '', category: '', unit_price: 105, carton_price: 0, pieces_per_carton: 1, stock_quantity: 0, min_stock_level: 10, vat_rate: 15 });
   };
 
   const handleEditSubmit = async () => {
@@ -101,7 +102,8 @@ const Products = () => {
       name_ar: product.name_ar,
       category: product.category || '',
       unit_price: product.unit_price,
-      cost_price: product.cost_price || 0,
+      carton_price: product.carton_price || 0,
+      pieces_per_carton: product.pieces_per_carton || 1,
       stock_quantity: product.stock_quantity || 0,
       min_stock_level: product.min_stock_level || 10,
       vat_rate: product.vat_rate || 15,
@@ -332,9 +334,13 @@ const Products = () => {
                 <Input type="number" value={formData.unit_price} onChange={(e) => setFormData({ ...formData, unit_price: Number(e.target.value) })} />
               </div>
               <div className="grid gap-2">
-                <Label>{language === 'en' ? 'Cost Price' : 'سعر التكلفة'}</Label>
-                <Input type="number" value={formData.cost_price} onChange={(e) => setFormData({ ...formData, cost_price: Number(e.target.value) })} />
+                <Label>{language === 'en' ? 'Carton Price' : 'سعر الكرتون'}</Label>
+                <Input type="number" value={formData.carton_price} onChange={(e) => setFormData({ ...formData, carton_price: Number(e.target.value) })} />
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>{language === 'en' ? 'Pieces per Carton' : 'عدد القطع في الكرتون'}</Label>
+              <Input type="number" value={formData.pieces_per_carton} onChange={(e) => setFormData({ ...formData, pieces_per_carton: Number(e.target.value) })} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">

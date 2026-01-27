@@ -48,10 +48,12 @@ export type Database = {
       }
       agents: {
         Row: {
+          auth_user_id: string | null
           can_add_clients: boolean | null
           can_give_discounts: boolean | null
           can_process_returns: boolean | null
           created_at: string
+          credit_balance: number | null
           current_sales: number | null
           email: string
           id: string
@@ -67,10 +69,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_user_id?: string | null
           can_add_clients?: boolean | null
           can_give_discounts?: boolean | null
           can_process_returns?: boolean | null
           created_at?: string
+          credit_balance?: number | null
           current_sales?: number | null
           email: string
           id?: string
@@ -86,10 +90,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_user_id?: string | null
           can_add_clients?: boolean | null
           can_give_discounts?: boolean | null
           can_process_returns?: boolean | null
           created_at?: string
+          credit_balance?: number | null
           current_sales?: number | null
           email?: string
           id?: string
@@ -106,11 +112,47 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          address: string | null
+          company_name: string
+          created_at: string
+          id: string
+          logo_url: string | null
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
           assigned_agent_id: string | null
           city: string | null
+          classification:
+            | Database["public"]["Enums"]["customer_classification"]
+            | null
           created_at: string
           credit_limit: number | null
           current_balance: number | null
@@ -126,6 +168,9 @@ export type Database = {
           address?: string | null
           assigned_agent_id?: string | null
           city?: string | null
+          classification?:
+            | Database["public"]["Enums"]["customer_classification"]
+            | null
           created_at?: string
           credit_limit?: number | null
           current_balance?: number | null
@@ -141,6 +186,9 @@ export type Database = {
           address?: string | null
           assigned_agent_id?: string | null
           city?: string | null
+          classification?:
+            | Database["public"]["Enums"]["customer_classification"]
+            | null
           created_at?: string
           credit_limit?: number | null
           current_balance?: number | null
@@ -385,6 +433,7 @@ export type Database = {
       }
       products: {
         Row: {
+          carton_price: number | null
           category: string | null
           cost_price: number | null
           created_at: string
@@ -393,6 +442,7 @@ export type Database = {
           min_stock_level: number | null
           name_ar: string
           name_en: string
+          pieces_per_carton: number | null
           sku: string
           stock_quantity: number | null
           unit_price: number
@@ -400,6 +450,7 @@ export type Database = {
           vat_rate: number | null
         }
         Insert: {
+          carton_price?: number | null
           category?: string | null
           cost_price?: number | null
           created_at?: string
@@ -408,6 +459,7 @@ export type Database = {
           min_stock_level?: number | null
           name_ar: string
           name_en: string
+          pieces_per_carton?: number | null
           sku: string
           stock_quantity?: number | null
           unit_price: number
@@ -415,6 +467,7 @@ export type Database = {
           vat_rate?: number | null
         }
         Update: {
+          carton_price?: number | null
           category?: string | null
           cost_price?: number | null
           created_at?: string
@@ -423,6 +476,7 @@ export type Database = {
           min_stock_level?: number | null
           name_ar?: string
           name_en?: string
+          pieces_per_carton?: number | null
           sku?: string
           stock_quantity?: number | null
           unit_price?: number
@@ -652,6 +706,7 @@ export type Database = {
     }
     Enums: {
       admin_role: "it_admin" | "sales_manager" | "accountant"
+      customer_classification: "retail" | "key_retail" | "modern_trade"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -780,6 +835,7 @@ export const Constants = {
   public: {
     Enums: {
       admin_role: ["it_admin", "sales_manager", "accountant"],
+      customer_classification: ["retail", "key_retail", "modern_trade"],
     },
   },
 } as const
