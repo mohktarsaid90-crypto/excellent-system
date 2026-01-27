@@ -4,8 +4,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Download, Building2, Phone, Mail, Loader2, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Search, Download, Building2, Phone, Mail, Loader2, Pencil, Trash2, MoreVertical, MapIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CustomerMapView } from '@/components/customers/CustomerMapView';
 import { useCustomers, CreateCustomerData, UpdateCustomerData } from '@/hooks/useCustomers';
 import { useRepresentatives } from '@/hooks/useRepresentatives';
 import {
@@ -61,6 +62,7 @@ const Customers = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showMapView, setShowMapView] = useState(false);
 
   const [formData, setFormData] = useState<CreateCustomerData>({
     name: '',
@@ -222,10 +224,16 @@ const Customers = () => {
               }
             </p>
           </div>
-          <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            {language === 'en' ? 'Add Customer' : 'إضافة عميل'}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setShowMapView(true)}>
+              <MapIcon className="h-4 w-4" />
+              {language === 'en' ? 'Map View' : 'عرض الخريطة'}
+            </Button>
+            <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              {language === 'en' ? 'Add Customer' : 'إضافة عميل'}
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -543,6 +551,15 @@ const Customers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Map View */}
+      {showMapView && (
+        <CustomerMapView 
+          customers={filteredCustomers} 
+          onClose={() => setShowMapView(false)} 
+          language={language as 'en' | 'ar'}
+        />
+      )}
     </AppLayout>
   );
 };

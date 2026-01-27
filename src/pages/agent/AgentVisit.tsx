@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AgentMobileLayout } from '@/components/agent/AgentMobileLayout';
 import { useAgentAuth } from '@/contexts/AgentAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Search, Navigation, CheckCircle, Phone, Building2, Loader2 } from 'lucide-react';
+import { MapPin, Search, Navigation, CheckCircle, Phone, Building2, Loader2, AlertTriangle } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -20,9 +20,23 @@ interface Customer {
   location_lng: number | null;
 }
 
+// Calculate distance between two GPS coordinates in meters
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const AgentVisit = () => {
   const { agent, updateLocation } = useAgentAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -33,6 +47,10 @@ const AgentVisit = () => {
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [distanceWarning, setDistanceWarning] = useState<number | null>(null);
+
+  // Pre-select customer if passed from Today's Route
+  const preSelectedCustomerId = location.state?.customerId;
 
   useEffect(() => {
     fetchCustomers();
@@ -52,6 +70,26 @@ const AgentVisit = () => {
     }
   }, [searchQuery, customers]);
 
+  // Check distance when customer or location changes
+  useEffect(() => {
+    if (selectedCustomer && currentLocation && selectedCustomer.location_lat && selectedCustomer.location_lng) {
+      const distance = calculateDistance(
+        currentLocation.lat,
+        currentLocation.lng,
+        selectedCustomer.location_lat,
+        selectedCustomer.location_lng
+      );
+      
+      if (distance > 100) {
+        setDistanceWarning(Math.round(distance));
+      } else {
+        setDistanceWarning(null);
+      }
+    } else {
+      setDistanceWarning(null);
+    }
+  }, [selectedCustomer, currentLocation]);
+
   const fetchCustomers = async () => {
     if (!agent) return;
     
@@ -65,6 +103,14 @@ const AgentVisit = () => {
       if (error) throw error;
       setCustomers(data || []);
       setFilteredCustomers(data || []);
+
+      // Pre-select customer if ID was passed
+      if (preSelectedCustomerId && data) {
+        const preSelected = data.find(c => c.id === preSelectedCustomerId);
+        if (preSelected) {
+          setSelectedCustomer(preSelected);
+        }
+      }
     } catch (error) {
       toast({
         title: 'خطأ',
@@ -155,6 +201,17 @@ const AgentVisit = () => {
           </span>
         </div>
 
+        {/* Distance Warning */}
+        {distanceWarning !== null && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">تحذير: أنت بعيد عن موقع العميل</p>
+              <p className="text-xs">المسافة: {distanceWarning} متر (المسموح: 100 متر)</p>
+            </div>
+          </div>
+        )}
+
         {/* Search */}
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -186,6 +243,18 @@ const AgentVisit = () => {
                         <span>{selectedCustomer.address}</span>
                       </div>
                     )}
+                    {/* GPS Status */}
+                    {selectedCustomer.location_lat && selectedCustomer.location_lng ? (
+                      <div className="flex items-center gap-1 text-xs text-emerald-600 mt-2">
+                        <Navigation className="h-3 w-3" />
+                        <span>موقع GPS متوفر</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-xs text-amber-600 mt-2">
+                        <Navigation className="h-3 w-3" />
+                        <span>لا يوجد موقع GPS للعميل</span>
+                      </div>
+                    )}
                   </div>
                   <CheckCircle className="h-6 w-6 text-primary" />
                 </div>
@@ -203,7 +272,10 @@ const AgentVisit = () => {
               <Button
                 variant="outline"
                 className="flex-1 h-14"
-                onClick={() => setSelectedCustomer(null)}
+                onClick={() => {
+                  setSelectedCustomer(null);
+                  setDistanceWarning(null);
+                }}
               >
                 تغيير العميل
               </Button>
@@ -225,6 +297,13 @@ const AgentVisit = () => {
                 )}
               </Button>
             </div>
+
+            {/* Distance Warning in Button Area */}
+            {distanceWarning !== null && (
+              <p className="text-xs text-center text-amber-600">
+                ⚠️ سيتم تسجيل الزيارة مع ملاحظة المسافة
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -245,19 +324,29 @@ const AgentVisit = () => {
                   onClick={() => setSelectedCustomer(customer)}
                 >
                   <CardContent className="p-4">
-                    <h3 className="font-semibold">{customer.name}</h3>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      {customer.city && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {customer.city}
-                        </span>
-                      )}
-                      {customer.phone && (
-                        <span className="flex items-center gap-1" dir="ltr">
-                          <Phone className="h-3 w-3" />
-                          {customer.phone}
-                        </span>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold">{customer.name}</h3>
+                        <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                          {customer.city && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {customer.city}
+                            </span>
+                          )}
+                          {customer.phone && (
+                            <span className="flex items-center gap-1" dir="ltr">
+                              <Phone className="h-3 w-3" />
+                              {customer.phone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* GPS Indicator */}
+                      {customer.location_lat && customer.location_lng ? (
+                        <Navigation className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <Navigation className="h-4 w-4 text-muted-foreground/30" />
                       )}
                     </div>
                   </CardContent>
