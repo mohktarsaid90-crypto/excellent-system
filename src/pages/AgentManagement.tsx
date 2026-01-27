@@ -86,7 +86,8 @@ const AgentManagement = () => {
   const handleNameChange = (name: string) => {
     const sanitizedName = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
     const generatedEmail = sanitizedName ? `${sanitizedName}@mano.com` : '';
-    const generatedPassword = sanitizedName ? `${sanitizedName}123` : '';
+    // Generate stronger password with minimum 8 characters
+    const generatedPassword = sanitizedName ? `${sanitizedName}@Mano123` : '';
     setNewAgent({
       ...newAgent,
       name,
@@ -104,7 +105,7 @@ const AgentManagement = () => {
   );
 
   const handleCreateAgent = async () => {
-    if (!newAgent.password || newAgent.password.length < 6) {
+    if (!newAgent.password || newAgent.password.length < 8) {
       return;
     }
     await createAgent.mutateAsync(newAgent);
@@ -233,7 +234,7 @@ const AgentManagement = () => {
                         onChange={(e) =>
                           setNewAgent({ ...newAgent, password: e.target.value })
                         }
-                        placeholder={language === 'en' ? 'Min 6 characters' : 'الحد الأدنى 6 أحرف'}
+                        placeholder={language === 'en' ? 'Min 8 characters' : 'الحد الأدنى 8 أحرف'}
                         className={cn(isRTL ? 'pl-10' : 'pr-10')}
                       />
                       <Button
@@ -310,7 +311,7 @@ const AgentManagement = () => {
                   <Button
                     onClick={handleCreateAgent}
                     className="w-full"
-                    disabled={createAgent.isPending || !newAgent.password || newAgent.password.length < 6}
+                    disabled={createAgent.isPending || !newAgent.password || newAgent.password.length < 8}
                   >
                     {createAgent.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
