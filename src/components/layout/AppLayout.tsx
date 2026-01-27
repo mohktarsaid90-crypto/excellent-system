@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ProfileDropdown } from './ProfileDropdown';
 import { NotificationsDropdown } from './NotificationsDropdown';
+import { Footer } from './Footer';
 import { Search, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -82,6 +83,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               {children}
             </div>
           </main>
+
+          {/* Footer */}
+          <Footer />
         </div>
       </div>
     </SidebarProvider>
