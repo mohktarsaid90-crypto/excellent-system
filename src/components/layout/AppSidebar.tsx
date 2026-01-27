@@ -121,8 +121,8 @@ export const AppSidebar = () => {
           Logo and branding always in English/LTR
           Last verified: 2026-01-27
           ============================================ */}
-      <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="bg-[sidebar-primary-foreground] bg-[#1a166f] text-[#ee5858] flex-row flex items-center justify-center gap-[12px] border-[#b70606] border-0 rounded shadow opacity-100" dir="ltr">
+      <SidebarHeader className="border-b border-sidebar-border p-4 bg-[#1b2937]">
+        <div className="flex items-center gap-3" dir="ltr">
           {/* Logo - Fixed English branding */}
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground font-bold text-lg shadow-md flex-shrink-0">
             M
