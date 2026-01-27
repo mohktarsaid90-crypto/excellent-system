@@ -235,7 +235,10 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     if (translations[key]) {
       return translations[key][language];
     }
-    console.warn(`Translation missing for key: ${key}`);
+    // SECURITY: Only log missing translations in development
+    if (import.meta.env.DEV) {
+      console.warn(`Translation missing for key: ${key}`);
+    }
     return key;
   };
 
