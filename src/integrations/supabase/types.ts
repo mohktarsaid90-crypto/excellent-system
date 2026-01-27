@@ -669,6 +669,81 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          can_access_agents: boolean | null
+          can_access_customers: boolean | null
+          can_access_dashboard: boolean | null
+          can_access_inventory: boolean | null
+          can_access_invoices: boolean | null
+          can_access_live_map: boolean | null
+          can_access_load_management: boolean | null
+          can_access_products: boolean | null
+          can_access_reconciliation: boolean | null
+          can_access_reports: boolean | null
+          can_access_representatives: boolean | null
+          can_access_sales: boolean | null
+          can_access_settings: boolean | null
+          can_access_users: boolean | null
+          can_delete_users: boolean | null
+          can_edit_agents: boolean | null
+          can_edit_customers: boolean | null
+          can_edit_products: boolean | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_access_agents?: boolean | null
+          can_access_customers?: boolean | null
+          can_access_dashboard?: boolean | null
+          can_access_inventory?: boolean | null
+          can_access_invoices?: boolean | null
+          can_access_live_map?: boolean | null
+          can_access_load_management?: boolean | null
+          can_access_products?: boolean | null
+          can_access_reconciliation?: boolean | null
+          can_access_reports?: boolean | null
+          can_access_representatives?: boolean | null
+          can_access_sales?: boolean | null
+          can_access_settings?: boolean | null
+          can_access_users?: boolean | null
+          can_delete_users?: boolean | null
+          can_edit_agents?: boolean | null
+          can_edit_customers?: boolean | null
+          can_edit_products?: boolean | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_access_agents?: boolean | null
+          can_access_customers?: boolean | null
+          can_access_dashboard?: boolean | null
+          can_access_inventory?: boolean | null
+          can_access_invoices?: boolean | null
+          can_access_live_map?: boolean | null
+          can_access_load_management?: boolean | null
+          can_access_products?: boolean | null
+          can_access_reconciliation?: boolean | null
+          can_access_reports?: boolean | null
+          can_access_representatives?: boolean | null
+          can_access_sales?: boolean | null
+          can_access_settings?: boolean | null
+          can_access_users?: boolean | null
+          can_delete_users?: boolean | null
+          can_edit_agents?: boolean | null
+          can_edit_customers?: boolean | null
+          can_edit_products?: boolean | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

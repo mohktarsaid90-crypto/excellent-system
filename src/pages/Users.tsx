@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Shield, User, Settings, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Shield, User, Settings, Loader2, Pencil, Trash2, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUsers, useUpdateUserRole, useDeleteUser, AdminRole } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  useUserPermissions, 
+  useUpsertUserPermissions, 
+  useAllUserPermissions,
+  permissionCategories, 
+  defaultPermissions,
+  UserPermissions
+} from '@/hooks/useUserPermissions';
 import {
   Dialog,
   DialogContent,
@@ -34,10 +42,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const roleConfig = {
+  company_owner: { label: { en: 'Company Owner', ar: 'إدارة الشركة' }, className: 'bg-amber-500/10 text-amber-600 border-amber-500/20', icon: Crown },
   it_admin: { label: { en: 'IT Admin', ar: 'مدير النظام' }, className: 'bg-destructive/10 text-destructive border-destructive/20', icon: Shield },
   sales_manager: { label: { en: 'Sales Manager', ar: 'مدير المبيعات' }, className: 'bg-primary/10 text-primary border-primary/20', icon: Settings },
   accountant: { label: { en: 'Accountant', ar: 'محاسب' }, className: 'bg-success/10 text-success border-success/20', icon: User },
@@ -47,8 +59,10 @@ const Users = () => {
   const { t, language, isRTL } = useLanguage();
   const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useUsers();
+  const { data: allPermissions } = useAllUserPermissions();
   const updateRole = useUpdateUserRole();
   const deleteUser = useDeleteUser();
+  const upsertPermissions = useUpsertUserPermissions();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,12 +72,29 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState<AdminRole>('accountant');
   const [isCreating, setIsCreating] = useState(false);
+  const [editPermissions, setEditPermissions] = useState<Partial<UserPermissions>>({});
   const [newUser, setNewUser] = useState({
     email: '',
     password: '',
     full_name: '',
     role: 'accountant' as AdminRole,
   });
+
+  // Load user permissions when editing
+  useEffect(() => {
+    if (selectedUser && allPermissions) {
+      const userPerms = allPermissions.find(p => p.user_id === selectedUser.user_id);
+      if (userPerms) {
+        setEditPermissions(userPerms);
+      } else {
+        // Default permissions based on role
+        setEditPermissions({
+          ...defaultPermissions,
+          user_id: selectedUser.user_id,
+        });
+      }
+    }
+  }, [selectedUser, allPermissions]);
 
   const filteredUsers = users?.filter(user =>
     user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,11 +112,32 @@ const Users = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleUpdateRole = async () => {
+  const handlePermissionChange = (key: string, checked: boolean) => {
+    setEditPermissions(prev => ({
+      ...prev,
+      [key]: checked,
+    }));
+  };
+
+  const handleUpdateRoleAndPermissions = async () => {
     if (!selectedUser) return;
-    await updateRole.mutateAsync({ user_id: selectedUser.user_id, role: selectedRole });
-    setIsEditDialogOpen(false);
-    setSelectedUser(null);
+    
+    try {
+      // Update role
+      await updateRole.mutateAsync({ user_id: selectedUser.user_id, role: selectedRole });
+      
+      // Update permissions
+      await upsertPermissions.mutateAsync({
+        ...defaultPermissions,
+        ...editPermissions,
+        user_id: selectedUser.user_id,
+      } as UserPermissions);
+      
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      // Error is handled by the mutation
+    }
   };
 
   const handleDelete = async () => {
@@ -146,8 +198,8 @@ const Users = () => {
             </h1>
             <p className="text-muted-foreground">
               {language === 'en' 
-                ? 'Manage admin user accounts and roles'
-                : 'إدارة حسابات المستخدمين والأدوار'
+                ? 'Manage admin user accounts, roles, and permissions'
+                : 'إدارة حسابات المستخدمين والأدوار والصلاحيات'
             }
             </p>
           </div>
@@ -269,34 +321,106 @@ const Users = () => {
         )}
       </div>
 
-      {/* Edit Role Dialog */}
+      {/* Edit Role & Permissions Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent dir={isRTL ? 'rtl' : 'ltr'}>
+        <DialogContent dir={isRTL ? 'rtl' : 'ltr'} className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{language === 'en' ? 'Edit User Role' : 'تعديل دور المستخدم'}</DialogTitle>
+            <DialogTitle>{language === 'en' ? 'Edit User Role & Permissions' : 'تعديل دور وصلاحيات المستخدم'}</DialogTitle>
             <DialogDescription>
               {language === 'en' 
-                ? `Change the role for ${selectedUser?.full_name}`
-                : `تغيير دور ${selectedUser?.full_name}`}
+                ? `Modify role and permissions for ${selectedUser?.full_name}`
+                : `تعديل دور وصلاحيات ${selectedUser?.full_name}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label>{language === 'en' ? 'Role' : 'الدور'}</Label>
-            <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AdminRole)}>
-              <SelectTrigger className="mt-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="it_admin">{language === 'en' ? 'IT Admin' : 'مدير النظام'}</SelectItem>
-                <SelectItem value="sales_manager">{language === 'en' ? 'Sales Manager' : 'مدير المبيعات'}</SelectItem>
-                <SelectItem value="accountant">{language === 'en' ? 'Accountant' : 'محاسب'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6 py-4">
+              {/* Role Selection */}
+              <div className="space-y-2">
+                <Label>{language === 'en' ? 'Role' : 'الدور'}</Label>
+                <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AdminRole)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    <SelectItem value="company_owner">{language === 'en' ? 'Company Owner' : 'إدارة الشركة'}</SelectItem>
+                    <SelectItem value="it_admin">{language === 'en' ? 'IT Admin' : 'مدير النظام'}</SelectItem>
+                    <SelectItem value="sales_manager">{language === 'en' ? 'Sales Manager' : 'مدير المبيعات'}</SelectItem>
+                    <SelectItem value="accountant">{language === 'en' ? 'Accountant' : 'محاسب'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Permissions Section */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-foreground">
+                  {language === 'en' ? 'Custom Permissions' : 'الصلاحيات المخصصة'}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'en' 
+                    ? 'Override default role permissions by checking/unchecking specific features'
+                    : 'تجاوز صلاحيات الدور الافتراضية عن طريق تحديد/إلغاء تحديد ميزات معينة'}
+                </p>
+
+                {/* Page Access Permissions */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-muted-foreground">
+                    {permissionCategories.access.label[language as 'en' | 'ar']}
+                  </h5>
+                  <div className="grid grid-cols-2 gap-3">
+                    {permissionCategories.access.permissions.map((perm) => (
+                      <div key={perm.key} className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Checkbox
+                          id={perm.key}
+                          checked={editPermissions[perm.key as keyof UserPermissions] as boolean || false}
+                          onCheckedChange={(checked) => handlePermissionChange(perm.key, checked as boolean)}
+                        />
+                        <label
+                          htmlFor={perm.key}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {perm.label[language as 'en' | 'ar']}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Action Permissions */}
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-muted-foreground">
+                    {permissionCategories.actions.label[language as 'en' | 'ar']}
+                  </h5>
+                  <div className="grid grid-cols-2 gap-3">
+                    {permissionCategories.actions.permissions.map((perm) => (
+                      <div key={perm.key} className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Checkbox
+                          id={perm.key}
+                          checked={editPermissions[perm.key as keyof UserPermissions] as boolean || false}
+                          onCheckedChange={(checked) => handlePermissionChange(perm.key, checked as boolean)}
+                        />
+                        <label
+                          htmlFor={perm.key}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {perm.label[language as 'en' | 'ar']}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>{t('cancel')}</Button>
-            <Button onClick={handleUpdateRole} disabled={updateRole.isPending}>
-              {updateRole.isPending && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            <Button onClick={handleUpdateRoleAndPermissions} disabled={updateRole.isPending || upsertPermissions.isPending}>
+              {(updateRole.isPending || upsertPermissions.isPending) && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
               {t('save')}
             </Button>
           </DialogFooter>
@@ -344,7 +468,8 @@ const Users = () => {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="company_owner">{language === 'en' ? 'Company Owner' : 'إدارة الشركة'}</SelectItem>
                   <SelectItem value="it_admin">{language === 'en' ? 'IT Admin' : 'مدير النظام'}</SelectItem>
                   <SelectItem value="sales_manager">{language === 'en' ? 'Sales Manager' : 'مدير المبيعات'}</SelectItem>
                   <SelectItem value="accountant">{language === 'en' ? 'Accountant' : 'محاسب'}</SelectItem>
