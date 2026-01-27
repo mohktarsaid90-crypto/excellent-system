@@ -60,7 +60,28 @@ const Customers = () => {
     city: '',
     credit_limit: 0,
     assigned_agent_id: '',
+    classification: 'retail',
   });
+
+  const classificationOptions = [
+    { value: 'retail', labelEn: 'Retail', labelAr: 'تجزئة' },
+    { value: 'key_retail', labelEn: 'Key Retail', labelAr: 'تجزئة كبرى' },
+    { value: 'modern_trade', labelEn: 'Modern Trade', labelAr: 'هايبر ماركت/سلاسل' },
+  ];
+
+  const getClassificationLabel = (classification: string | null) => {
+    const option = classificationOptions.find(o => o.value === classification);
+    return option ? (language === 'en' ? option.labelEn : option.labelAr) : '-';
+  };
+
+  const getClassificationBadgeColor = (classification: string | null) => {
+    switch (classification) {
+      case 'retail': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'key_retail': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+      case 'modern_trade': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,9 +92,10 @@ const Customers = () => {
     await createCustomer.mutateAsync({
       ...formData,
       assigned_agent_id: formData.assigned_agent_id || undefined,
+      classification: formData.classification || 'retail',
     });
     setIsCreateDialogOpen(false);
-    setFormData({ name: '', email: '', phone: '', address: '', city: '', credit_limit: 0, assigned_agent_id: '' });
+    setFormData({ name: '', email: '', phone: '', address: '', city: '', credit_limit: 0, assigned_agent_id: '', classification: 'retail' });
   };
 
   const handleEditSubmit = async () => {
@@ -86,6 +108,7 @@ const Customers = () => {
       city: formData.city,
       credit_limit: formData.credit_limit,
       assigned_agent_id: formData.assigned_agent_id || undefined,
+      classification: formData.classification,
     };
     await updateCustomer.mutateAsync({ id: selectedCustomer.id, data: updateData });
     setIsEditDialogOpen(false);
@@ -109,6 +132,7 @@ const Customers = () => {
       city: customer.city || '',
       credit_limit: customer.credit_limit || 0,
       assigned_agent_id: customer.assigned_agent_id || '',
+      classification: customer.classification || 'retail',
     });
     setIsEditDialogOpen(true);
   };
@@ -188,6 +212,9 @@ const Customers = () => {
                       {t('customerName')}
                     </th>
                     <th className={cn("px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider", isRTL ? 'text-right' : 'text-left')}>
+                      {language === 'en' ? 'Classification' : 'التصنيف'}
+                    </th>
+                    <th className={cn("px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider", isRTL ? 'text-right' : 'text-left')}>
                       {language === 'en' ? 'Contact' : 'التواصل'}
                     </th>
                     <th className={cn("px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider", isRTL ? 'text-right' : 'text-left')}>
@@ -222,6 +249,11 @@ const Customers = () => {
                             )}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={cn("font-medium", getClassificationBadgeColor(customer.classification))}>
+                          {getClassificationLabel(customer.classification)}
+                        </Badge>
                       </td>
                       <td className="px-6 py-4">
                         <div className="space-y-1">
@@ -314,16 +346,31 @@ const Customers = () => {
               <Label>{t('address')}</Label>
               <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
             </div>
-            <div className="grid gap-2">
-              <Label>{language === 'en' ? 'Assigned Agent' : 'المندوب المسؤول'}</Label>
-              <Select value={formData.assigned_agent_id} onValueChange={(v) => setFormData({ ...formData, assigned_agent_id: v })}>
-                <SelectTrigger><SelectValue placeholder={language === 'en' ? 'Select agent' : 'اختر المندوب'} /></SelectTrigger>
-                <SelectContent>
-                  {representatives.map((rep) => (
-                    <SelectItem key={rep.id} value={rep.id}>{rep.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>{language === 'en' ? 'Customer Category' : 'تصنيف العميل'}</Label>
+                <Select value={formData.classification} onValueChange={(v) => setFormData({ ...formData, classification: v as any })}>
+                  <SelectTrigger><SelectValue placeholder={language === 'en' ? 'Select category' : 'اختر التصنيف'} /></SelectTrigger>
+                  <SelectContent>
+                    {classificationOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {language === 'en' ? opt.labelEn : opt.labelAr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>{language === 'en' ? 'Assigned Agent' : 'المندوب المسؤول'}</Label>
+                <Select value={formData.assigned_agent_id} onValueChange={(v) => setFormData({ ...formData, assigned_agent_id: v })}>
+                  <SelectTrigger><SelectValue placeholder={language === 'en' ? 'Select agent' : 'اختر المندوب'} /></SelectTrigger>
+                  <SelectContent>
+                    {representatives.map((rep) => (
+                      <SelectItem key={rep.id} value={rep.id}>{rep.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -373,6 +420,19 @@ const Customers = () => {
             <div className="grid gap-2">
               <Label>{t('address')}</Label>
               <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+            </div>
+            <div className="grid gap-2">
+              <Label>{language === 'en' ? 'Customer Category' : 'تصنيف العميل'}</Label>
+              <Select value={formData.classification} onValueChange={(v) => setFormData({ ...formData, classification: v as any })}>
+                <SelectTrigger><SelectValue placeholder={language === 'en' ? 'Select category' : 'اختر التصنيف'} /></SelectTrigger>
+                <SelectContent>
+                  {classificationOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {language === 'en' ? opt.labelEn : opt.labelAr}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
