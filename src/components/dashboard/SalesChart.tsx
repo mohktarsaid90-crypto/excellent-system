@@ -2,21 +2,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-
-const salesData = [
-  { name: 'Jan', sales: 45000, orders: 120 },
-  { name: 'Feb', sales: 52000, orders: 145 },
-  { name: 'Mar', sales: 48000, orders: 132 },
-  { name: 'Apr', sales: 61000, orders: 168 },
-  { name: 'May', sales: 55000, orders: 155 },
-  { name: 'Jun', sales: 67000, orders: 182 },
-  { name: 'Jul', sales: 72000, orders: 198 },
-  { name: 'Aug', sales: 69000, orders: 190 },
-  { name: 'Sep', sales: 78000, orders: 215 },
-  { name: 'Oct', sales: 82000, orders: 228 },
-  { name: 'Nov', sales: 88000, orders: 245 },
-  { name: 'Dec', sales: 95000, orders: 265 },
-];
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const arabicMonths: { [key: string]: string } = {
   Jan: 'يناير', Feb: 'فبراير', Mar: 'مارس', Apr: 'أبريل',
@@ -24,16 +12,63 @@ const arabicMonths: { [key: string]: string } = {
   Sep: 'سبتمبر', Oct: 'أكتوبر', Nov: 'نوفمبر', Dec: 'ديسمبر',
 };
 
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 type ViewType = 'revenue' | 'orders';
 
 export const SalesChart = () => {
   const { t, language, isRTL } = useLanguage();
   const [view, setView] = useState<ViewType>('revenue');
 
-  const chartData = salesData.map(item => ({
+  // Fetch real sales data from invoices table
+  const { data: salesData, isLoading } = useQuery({
+    queryKey: ['sales-chart-data'],
+    queryFn: async () => {
+      const { data: invoices, error } = await supabase
+        .from('invoices')
+        .select('created_at, total_amount')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Group by month
+      const monthlyData: { [key: string]: { sales: number; orders: number } } = {};
+      
+      // Initialize all months
+      monthNames.forEach(month => {
+        monthlyData[month] = { sales: 0, orders: 0 };
+      });
+
+      // Aggregate invoice data by month
+      invoices?.forEach(invoice => {
+        const date = new Date(invoice.created_at);
+        const monthName = monthNames[date.getMonth()];
+        monthlyData[monthName].sales += invoice.total_amount || 0;
+        monthlyData[monthName].orders += 1;
+      });
+
+      return monthNames.map(month => ({
+        name: month,
+        sales: Math.round(monthlyData[month].sales),
+        orders: monthlyData[month].orders,
+      }));
+    },
+    refetchInterval: 30000,
+  });
+
+  const chartData = salesData?.map(item => ({
     ...item,
     name: language === 'ar' ? arabicMonths[item.name] : item.name,
-  }));
+  })) || [];
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl bg-card p-6 shadow-sm">
+        <Skeleton className="h-8 w-48 mb-6" />
+        <Skeleton className="h-[300px] w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl bg-card p-6 shadow-sm">

@@ -70,6 +70,19 @@ const AgentManagement = () => {
     monthly_target: 0,
   });
 
+  // Auto-generate email and password when name changes
+  const handleNameChange = (name: string) => {
+    const sanitizedName = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    const generatedEmail = sanitizedName ? `${sanitizedName}@mano.com` : '';
+    const generatedPassword = sanitizedName ? `${sanitizedName}123` : '';
+    setNewAgent({
+      ...newAgent,
+      name,
+      email: generatedEmail,
+      password: generatedPassword,
+    });
+  };
+
   const canManageAgents = hasPermission(['it_admin', 'sales_manager']);
 
   const filteredAgents = agents?.filter(
@@ -162,9 +175,7 @@ const AgentManagement = () => {
                     <Label>{language === 'en' ? 'Name' : 'الاسم'}</Label>
                     <Input
                       value={newAgent.name}
-                      onChange={(e) =>
-                        setNewAgent({ ...newAgent, name: e.target.value })
-                      }
+                      onChange={(e) => handleNameChange(e.target.value)}
                       placeholder={language === 'en' ? 'Agent name' : 'اسم المندوب'}
                     />
                   </div>
@@ -218,7 +229,7 @@ const AgentManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{language === 'en' ? 'Monthly Target (SAR)' : 'الهدف الشهري (ريال)'}</Label>
+                    <Label>{language === 'en' ? 'Monthly Target (EGP)' : 'الهدف الشهري (ج.م)'}</Label>
                     <Input
                       type="number"
                       value={newAgent.monthly_target}
@@ -308,7 +319,7 @@ const AgentManagement = () => {
                     {language === 'en' ? 'Total Credit Balance' : 'إجمالي رصيد الآجل'}
                   </p>
                   <p className="text-2xl font-bold text-warning">
-                    {agents?.reduce((sum, a) => sum + (a.credit_balance || 0), 0).toLocaleString() || 0} SAR
+                    {agents?.reduce((sum, a) => sum + (a.credit_balance || 0), 0).toLocaleString() || 0} EGP
                   </p>
                 </div>
                 <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center">
