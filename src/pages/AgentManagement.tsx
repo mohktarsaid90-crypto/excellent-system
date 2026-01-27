@@ -396,18 +396,20 @@ const AgentManagement = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className={cn(
-            "absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground",
-            isRTL ? "right-3" : "left-3"
-          )} />
-          <Input
-            placeholder={language === 'en' ? 'Search agents...' : 'البحث عن مندوب...'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={cn("bg-card", isRTL ? "pr-10" : "pl-10")}
-          />
+        {/* Search & Filter */}
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="relative flex-1 max-w-md">
+            <Search className={cn(
+              "absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground",
+              isRTL ? "right-3" : "left-3"
+            )} />
+            <Input
+              placeholder={language === 'en' ? 'Search agents...' : 'البحث عن مندوب...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={cn("bg-card", isRTL ? "pr-10" : "pl-10")}
+            />
+          </div>
         </div>
 
         {/* Agents Table */}

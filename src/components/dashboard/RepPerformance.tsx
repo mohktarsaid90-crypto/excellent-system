@@ -4,6 +4,7 @@ import { TrendingUp, Users } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNavigate } from 'react-router-dom';
 
 interface AgentPerformance {
   id: string;
@@ -16,6 +17,7 @@ interface AgentPerformance {
 
 export const RepPerformance = () => {
   const { t, language, isRTL } = useLanguage();
+  const navigate = useNavigate();
 
   const { data: agents, isLoading } = useQuery({
     queryKey: ['rep-performance'],
@@ -76,12 +78,19 @@ export const RepPerformance = () => {
 
   const hasNoData = !agents || agents.length === 0;
 
+  const handleViewAll = () => {
+    navigate('/agents');
+  };
+
   return (
     <div className="rounded-xl bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">{t('repPerformance')}</h3>
         {!hasNoData && (
-          <button className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+          <button 
+            onClick={handleViewAll}
+            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          >
             {t('viewAll')}
           </button>
         )}

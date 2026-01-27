@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, Download, Building2, Phone, Mail, Loader2, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Search, Download, Building2, Phone, Mail, Loader2, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCustomers, CreateCustomerData, UpdateCustomerData } from '@/hooks/useCustomers';
 import { useRepresentatives } from '@/hooks/useRepresentatives';
@@ -40,6 +40,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { StatusFilter } from '@/components/filters/StatusFilter';
+import { exportToExcel, exportToPDF } from '@/lib/export';
+
+const classificationOptions = [
+  { value: 'retail', labelEn: 'Retail', labelAr: 'تجزئة' },
+  { value: 'key_retail', labelEn: 'Key Retail', labelAr: 'تجزئة كبرى' },
+  { value: 'modern_trade', labelEn: 'Modern Trade', labelAr: 'هايبر ماركت/سلاسل' },
+];
 
 const Customers = () => {
   const { t, language, isRTL } = useLanguage();
@@ -47,6 +55,7 @@ const Customers = () => {
   const { representatives } = useRepresentatives();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClassifications, setSelectedClassifications] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -63,12 +72,6 @@ const Customers = () => {
     classification: 'retail',
   });
 
-  const classificationOptions = [
-    { value: 'retail', labelEn: 'Retail', labelAr: 'تجزئة' },
-    { value: 'key_retail', labelEn: 'Key Retail', labelAr: 'تجزئة كبرى' },
-    { value: 'modern_trade', labelEn: 'Modern Trade', labelAr: 'هايبر ماركت/سلاسل' },
-  ];
-
   const getClassificationLabel = (classification: string | null) => {
     const option = classificationOptions.find(o => o.value === classification);
     return option ? (language === 'en' ? option.labelEn : option.labelAr) : '-';
@@ -83,10 +86,19 @@ const Customers = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      const matchesSearch =
+        customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesClassification =
+        selectedClassifications.length === 0 ||
+        (customer.classification && selectedClassifications.includes(customer.classification));
+
+      return matchesSearch && matchesClassification;
+    });
+  }, [customers, searchQuery, selectedClassifications]);
 
   const handleCreateSubmit = async () => {
     await createCustomer.mutateAsync({
@@ -142,6 +154,45 @@ const Customers = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleExportExcel = () => {
+    const data = {
+      title: language === 'en' ? 'Customers Report' : 'تقرير العملاء',
+      headers: [
+        language === 'en' ? 'Name' : 'الاسم',
+        language === 'en' ? 'Classification' : 'التصنيف',
+        language === 'en' ? 'City' : 'المدينة',
+        language === 'en' ? 'Phone' : 'الهاتف',
+        language === 'en' ? 'Credit Limit' : 'حد الائتمان',
+        language === 'en' ? 'Balance' : 'الرصيد',
+      ],
+      rows: filteredCustomers.map((c) => [
+        c.name,
+        getClassificationLabel(c.classification),
+        c.city || '-',
+        c.phone || '-',
+        `${c.credit_limit?.toLocaleString()} EGP`,
+        `${c.current_balance?.toLocaleString()} EGP`,
+      ]),
+    };
+    exportToExcel(data, `customers_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleExportPDF = () => {
+    const data = {
+      title: language === 'en' ? 'Customers Report' : 'تقرير العملاء',
+      headers: ['Name', 'Classification', 'City', 'Phone', 'Credit Limit', 'Balance'],
+      rows: filteredCustomers.map((c) => [
+        c.name,
+        c.classification || '-',
+        c.city || '-',
+        c.phone || '-',
+        c.credit_limit || 0,
+        c.current_balance || 0,
+      ]),
+    };
+    exportToPDF(data, `customers_${new Date().toISOString().split('T')[0]}`);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -175,14 +226,28 @@ const Customers = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
-            {t('filter')}
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            {t('export')}
-          </Button>
+          <StatusFilter
+            options={classificationOptions}
+            selectedValues={selectedClassifications}
+            onSelectionChange={setSelectedClassifications}
+            label={{ en: 'Classification', ar: 'التصنيف' }}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                {t('export')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-popover z-50">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                {t('exportExcel')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                {t('exportPdf')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Loading State */}

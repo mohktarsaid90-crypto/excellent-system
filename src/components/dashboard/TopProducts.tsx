@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface TopProduct {
   product_id: string;
@@ -14,6 +15,7 @@ interface TopProduct {
 
 export const TopProducts = () => {
   const { t, language, isRTL } = useLanguage();
+  const navigate = useNavigate();
 
   const { data: topProducts, isLoading } = useQuery({
     queryKey: ['top-products'],
@@ -76,12 +78,19 @@ export const TopProducts = () => {
 
   const hasNoData = !topProducts || topProducts.length === 0;
 
+  const handleViewAll = () => {
+    navigate('/products');
+  };
+
   return (
     <div className="rounded-xl bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">{t('topProducts')}</h3>
         {!hasNoData && (
-          <button className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+          <button 
+            onClick={handleViewAll}
+            className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          >
             {t('viewAll')}
           </button>
         )}
