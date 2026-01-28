@@ -1,6 +1,17 @@
 // Browser-based PDF export with native Arabic support
 // Uses the browser's print functionality to ensure proper RTL text rendering
 
+// HTML escape utility to prevent XSS in PDF templates
+const escapeHtml = (unsafe: string | number): string => {
+  const str = String(unsafe);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 export interface SummaryItem {
   label: string;
   value: string | number;
@@ -31,29 +42,33 @@ const generatePrintableHTML = (
     day: 'numeric',
   });
 
-  // Build summary cards HTML
+  // Build summary cards HTML - escape all dynamic content to prevent XSS
   const summaryHTML = summaryItems.map(item => `
     <div class="summary-card">
-      <div class="summary-label">${item.label}</div>
-      <div class="summary-value">${item.value}</div>
+      <div class="summary-label">${escapeHtml(item.label)}</div>
+      <div class="summary-value">${escapeHtml(item.value)}</div>
     </div>
   `).join('');
 
-  // Build table HTML
-  const headersHTML = tableData.headers.map(h => `<th>${h}</th>`).join('');
+  // Build table HTML - escape all dynamic content to prevent XSS
+  const headersHTML = tableData.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
   const rowsHTML = tableData.rows.map(row => `
     <tr>
-      ${row.map(cell => `<td>${cell}</td>`).join('')}
+      ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
     </tr>
   `).join('');
 
+  // Escape document metadata
+  const safeTitle = escapeHtml(title);
+  const safeLanguage = escapeHtml(language);
+
   return `
 <!DOCTYPE html>
-<html lang="${language}" dir="${dir}">
+<html lang="${safeLanguage}" dir="${dir}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${safeTitle}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
     
@@ -196,8 +211,8 @@ const generatePrintableHTML = (
 </head>
 <body>
   <div class="header">
-    <div class="title">${title}</div>
-    <div class="date">${dateStr}</div>
+    <div class="title">${safeTitle}</div>
+    <div class="date">${escapeHtml(dateStr)}</div>
   </div>
   
   ${summaryItems.length > 0 ? `
