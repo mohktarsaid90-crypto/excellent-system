@@ -37,17 +37,24 @@ export const AppLayout = ({
           CSS handles margin-left (LTR) or margin-right (RTL) automatically
          */}
         <div className="app-main-content flex flex-col min-h-screen">
-          {/* Top Header */}
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b backdrop-blur-lg px-4 lg:px-6 bg-card-foreground">
+          {/* Top Header - Dark with subtle border */}
+          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border backdrop-blur-xl px-4 lg:px-6 bg-background/95">
             <div className="flex items-center gap-4">
-              <SidebarTrigger className="md:hidden">
+              <SidebarTrigger className="md:hidden text-foreground">
                 <Menu className="h-5 w-5" />
               </SidebarTrigger>
               
               {/* Search Bar */}
               <div className="relative hidden md:flex">
                 <Search className={cn("absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground", isRTL ? "right-3" : "left-3")} />
-                <Input placeholder={t('search')} className={cn("w-64 lg:w-80 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary", isRTL ? "pr-10 text-right" : "pl-10")} dir={isRTL ? 'rtl' : 'ltr'} />
+                <Input 
+                  placeholder={t('search')} 
+                  className={cn(
+                    "w-64 lg:w-80 bg-secondary border-border focus-visible:ring-1 focus-visible:ring-primary text-foreground placeholder:text-muted-foreground",
+                    isRTL ? "pr-10 text-right" : "pl-10"
+                  )} 
+                  dir={isRTL ? 'rtl' : 'ltr'} 
+                />
               </div>
             </div>
 
@@ -65,8 +72,8 @@ export const AppLayout = ({
             </div>
           </header>
 
-          {/* Main Content */}
-          <main className="flex-1 p-4 lg:p-6 bg-card-foreground">
+          {/* Main Content - Dark background */}
+          <main className="flex-1 p-4 lg:p-6 bg-background">
             <div className="animate-fade-in">
               {children}
             </div>
