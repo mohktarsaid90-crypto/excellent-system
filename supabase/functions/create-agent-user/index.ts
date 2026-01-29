@@ -106,8 +106,21 @@ serve(async (req) => {
     let userId: string
 
     if (existingUser) {
-      // User already exists - return existing user ID
+      // User already exists - ensure password matches the newly provided one
+      // This prevents "Invalid Credentials" when re-creating an agent with a new password.
       userId = existingUser.id
+
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password,
+        user_metadata: { full_name: name, is_agent: true },
+      })
+
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to update existing agent credentials. Please try again.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     } else {
       // Create new user using service role (does NOT affect admin's session)
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -129,12 +142,53 @@ serve(async (req) => {
       console.log(`User ${email} created successfully with ID: ${userId}`)
     }
 
+    // Ensure profile exists for the auth user (do NOT store roles in profiles)
+    // We upsert so re-creating an existing agent also fixes missing profile rows.
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert(
+        {
+          user_id: userId,
+          email,
+          full_name: name,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
+
+    if (profileError) {
+      // Keep response generic; only log details in development.
+      if (Deno.env.get('DENO_ENV') === 'development') {
+        console.error('Profile upsert failed:', profileError)
+      }
+    }
+
+    // Ensure user has role=agent in user_roles (roles must stay in a separate table)
+    const { data: existingRole, error: roleLookupError } = await supabaseAdmin
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('role', 'agent')
+      .maybeSingle()
+
+    if (!roleLookupError && !existingRole) {
+      const { error: roleInsertError } = await supabaseAdmin
+        .from('user_roles')
+        .insert({ user_id: userId, role: 'agent' })
+
+      if (roleInsertError) {
+        if (Deno.env.get('DENO_ENV') === 'development') {
+          console.error('Role insert failed:', roleInsertError)
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         userId,
         email,
-        message: existingUser ? 'User already exists, returning existing ID' : 'User created successfully'
+        message: existingUser ? 'User existed; credentials/profile ensured' : 'User created successfully'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
