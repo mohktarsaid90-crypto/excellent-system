@@ -21,12 +21,13 @@ export const AppSidebar = () => {
     { key: 'sales', icon: ShoppingCart, href: '/sales' },
     { key: 'customers', icon: Users, href: '/customers' },
     { key: 'representatives', icon: UserCheck, href: '/representatives' },
+    // Keep Agents in main menu only (not duplicated under Operations)
+    { key: 'agents', icon: UserCheck, href: '/agents', roles: ['it_admin', 'sales_manager'] },
     { key: 'reports', icon: BarChart3, href: '/reports' },
   ];
 
   // Operations items
   const operationsItems = [
-    { key: 'agents', icon: UserCheck, href: '/agents', roles: ['it_admin', 'sales_manager'] },
     { key: 'loadManagement', icon: Truck, href: '/load-management', roles: ['it_admin', 'sales_manager'] },
   ];
 
@@ -54,6 +55,7 @@ export const AppSidebar = () => {
   const renderMenuItems = (items: typeof mainItems) => (
     <SidebarMenu>
       {items.map(item => (
+        (!item.roles || hasPermission(item.roles as any)) ? (
         <SidebarMenuItem key={item.key}>
           <SidebarMenuButton asChild tooltip={t(item.key)}>
             <NavLink 
@@ -70,6 +72,7 @@ export const AppSidebar = () => {
             </NavLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
+        ) : null
       ))}
     </SidebarMenu>
   );

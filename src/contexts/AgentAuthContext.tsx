@@ -64,23 +64,22 @@ export const AgentAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          setTimeout(async () => {
-            const agentData = await fetchAgentData(session.user.id);
-            setAgent(agentData);
-            setIsLoading(false);
-          }, 0);
-        } else {
-          setAgent(null);
+    // IMPORTANT: keep callback synchronous to avoid auth deadlocks.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        setTimeout(async () => {
+          const agentData = await fetchAgentData(session.user.id);
+          setAgent(agentData);
           setIsLoading(false);
-        }
+        }, 0);
+      } else {
+        setAgent(null);
+        setIsLoading(false);
       }
-    );
+    });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);

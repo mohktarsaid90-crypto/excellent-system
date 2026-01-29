@@ -35,16 +35,18 @@ const AgentLogin = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 to-background">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/20 via-background to-accent/10" dir="rtl">
-      {/* Header */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen flex flex-col bg-background relative" dir="rtl">
+      {/* Subtle background glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative z-10">
         {/* Logo & Branding */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-xl">
@@ -55,7 +57,7 @@ const AgentLogin = () => {
         </div>
 
         {/* Login Card */}
-        <Card className="w-full max-w-md shadow-2xl border-0">
+        <Card className="w-full max-w-md glass shadow-2xl">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-xl">تسجيل الدخول</CardTitle>
           </CardHeader>
