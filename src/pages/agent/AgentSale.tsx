@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Plus, Minus, Trash2, Receipt, Loader2, Search, MapPin, Navigation } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Receipt, Loader2, Search, MapPin, Navigation, Percent, DollarSign } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -36,6 +36,8 @@ interface ActiveVisit {
   customer_name: string;
 }
 
+type DiscountType = 'percentage' | 'fixed';
+
 const AgentSale = () => {
   const { agent, updateLocation } = useAgentAuth();
   const navigate = useNavigate();
@@ -52,6 +54,8 @@ const AgentSale = () => {
   const [activeVisit, setActiveVisit] = useState<ActiveVisit | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(true);
+  const [discountType, setDiscountType] = useState<DiscountType>('percentage');
+  const [discountValue, setDiscountValue] = useState<number>(0);
 
   useEffect(() => {
     fetchData();
@@ -190,11 +194,33 @@ const AgentSale = () => {
     sum + (item.product.unit_price * item.quantity), 0
   );
 
-  const vatAmount = cart.reduce((sum, item) => 
-    sum + (item.product.unit_price * item.quantity * (item.product.vat_rate || 0) / 100), 0
-  );
+  // Calculate discount amount based on type
+  const calculateDiscountAmount = () => {
+    if (!agent?.can_give_discounts) return 0;
+    if (discountType === 'percentage') {
+      const maxPercent = agent?.max_discount_percent || 10;
+      const appliedPercent = Math.min(discountValue, maxPercent);
+      return (subtotal * appliedPercent) / 100;
+    }
+    return Math.min(discountValue, subtotal); // Fixed amount can't exceed subtotal
+  };
 
-  const total = subtotal + vatAmount;
+  const discountAmount = calculateDiscountAmount();
+  const subtotalAfterDiscount = subtotal - discountAmount;
+
+  const vatAmount = cart.reduce((sum, item) => {
+    const itemSubtotal = item.product.unit_price * item.quantity;
+    const itemDiscountRatio = subtotal > 0 ? discountAmount / subtotal : 0;
+    const itemAfterDiscount = itemSubtotal - (itemSubtotal * itemDiscountRatio);
+    return sum + (itemAfterDiscount * (item.product.vat_rate || 0) / 100);
+  }, 0);
+
+  const total = subtotalAfterDiscount + vatAmount;
+
+  // Check if discount exceeds max allowed
+  const isDiscountExceeded = discountType === 'percentage' && 
+    agent?.can_give_discounts && 
+    discountValue > (agent?.max_discount_percent || 10);
 
   const handleSubmit = async () => {
     if (!selectedCustomer || cart.length === 0 || !agent) {
@@ -216,6 +242,15 @@ const AgentSale = () => {
       return;
     }
 
+    if (isDiscountExceeded) {
+      toast({
+        title: 'خطأ',
+        description: `الحد الأقصى للخصم هو ${agent.max_discount_percent}%`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -225,7 +260,7 @@ const AgentSale = () => {
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}`;
 
-      // Create invoice with GPS coordinates
+      // Create invoice with GPS coordinates and discount
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -233,6 +268,7 @@ const AgentSale = () => {
           agent_id: agent.id,
           customer_id: selectedCustomer,
           subtotal: subtotal,
+          discount_amount: discountAmount,
           vat_amount: vatAmount,
           total_amount: total,
           payment_method: paymentMethod,
@@ -244,14 +280,20 @@ const AgentSale = () => {
       if (invoiceError) throw invoiceError;
 
       // Create invoice items
-      const items = cart.map(item => ({
-        invoice_id: invoice.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        unit_price: item.product.unit_price,
-        vat_amount: item.product.unit_price * item.quantity * (item.product.vat_rate || 0) / 100,
-        line_total: item.product.unit_price * item.quantity,
-      }));
+      const items = cart.map(item => {
+        const itemSubtotal = item.product.unit_price * item.quantity;
+        const itemDiscountRatio = subtotal > 0 ? discountAmount / subtotal : 0;
+        const itemAfterDiscount = itemSubtotal - (itemSubtotal * itemDiscountRatio);
+        return {
+          invoice_id: invoice.id,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.product.unit_price,
+          discount_percent: discountType === 'percentage' ? discountValue : 0,
+          vat_amount: itemAfterDiscount * (item.product.vat_rate || 0) / 100,
+          line_total: itemSubtotal,
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from('invoice_items')
@@ -304,6 +346,7 @@ const AgentSale = () => {
       setIsSubmitting(false);
     }
   };
+
 
   if (isLoading) {
     return (
@@ -459,27 +502,109 @@ const AgentSale = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Discount Section - Only if agent has permission */}
+        {agent?.can_give_discounts && cart.length > 0 && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Percent className="h-5 w-5 text-warning" />
+                <Label className="font-bold">الخصم</Label>
+                <span className="text-xs text-muted-foreground mr-auto">
+                  (الحد الأقصى: {agent.max_discount_percent}%)
+                </span>
+              </div>
+              
+              {/* Discount Type Toggle */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={discountType === 'percentage' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setDiscountType('percentage');
+                    setDiscountValue(0);
+                  }}
+                >
+                  <Percent className="h-4 w-4 ml-1" />
+                  نسبة مئوية
+                </Button>
+                <Button
+                  type="button"
+                  variant={discountType === 'fixed' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setDiscountType('fixed');
+                    setDiscountValue(0);
+                  }}
+                >
+                  <DollarSign className="h-4 w-4 ml-1" />
+                  مبلغ ثابت
+                </Button>
+              </div>
+
+              {/* Discount Value Input */}
+              <div className="relative">
+                <Input
+                  type="number"
+                  min="0"
+                  max={discountType === 'percentage' ? agent.max_discount_percent : subtotal}
+                  step={discountType === 'percentage' ? 1 : 0.01}
+                  value={discountValue || ''}
+                  onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                  placeholder={discountType === 'percentage' ? 'أدخل النسبة' : 'أدخل المبلغ'}
+                  className="h-12 pr-12"
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {discountType === 'percentage' ? '%' : 'ج.م'}
+                </span>
+              </div>
+
+              {/* Warning if exceeded */}
+              {isDiscountExceeded && (
+                <p className="text-destructive text-xs font-medium">
+                  تجاوزت الحد الأقصى للخصم ({agent.max_discount_percent}%)
+                </p>
+              )}
+
+              {/* Preview discount amount */}
+              {discountAmount > 0 && (
+                <p className="text-sm text-warning font-medium">
+                  قيمة الخصم: {discountAmount.toFixed(2)} ج.م
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Fixed Bottom Summary */}
       {cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4 space-y-3 shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4 space-y-2 shadow-2xl">
           <div className="flex justify-between text-sm">
             <span>المجموع الفرعي</span>
             <span>{subtotal.toFixed(2)} ج.م</span>
           </div>
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-sm text-warning">
+              <span>الخصم</span>
+              <span>-{discountAmount.toFixed(2)} ج.م</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span>ضريبة القيمة المضافة</span>
             <span>{vatAmount.toFixed(2)} ج.م</span>
           </div>
           <div className="flex justify-between font-bold text-lg border-t pt-2">
-            <span>الإجمالي</span>
+            <span>الإجمالي النهائي</span>
             <span className="text-primary">{total.toFixed(2)} ج.م</span>
           </div>
           <Button
             className="w-full h-14 text-lg"
             onClick={handleSubmit}
-            disabled={isSubmitting || !selectedCustomer || !currentLocation}
+            disabled={isSubmitting || !selectedCustomer || !currentLocation || isDiscountExceeded}
           >
             {isSubmitting ? (
               <>

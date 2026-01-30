@@ -64,8 +64,10 @@ const AgentManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [isTargetDialogOpen, setIsTargetDialogOpen] = useState(false);
+  const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<any>(null);
   const [creditAmount, setCreditAmount] = useState(0);
+  const [maxDiscountPercent, setMaxDiscountPercent] = useState(10);
   const [targetValues, setTargetValues] = useState({
     monthly_target: 0,
     cartons_target: 0,
@@ -164,6 +166,22 @@ const AgentManagement = () => {
       tons_target: agent.tons_target || 0,
     });
     setIsTargetDialogOpen(true);
+  };
+
+  const openDiscountDialog = (agent: any) => {
+    setSelectedAgent(agent);
+    setMaxDiscountPercent(agent.max_discount_percent || 10);
+    setIsDiscountDialogOpen(true);
+  };
+
+  const handleUpdateMaxDiscount = async () => {
+    if (!selectedAgent) return;
+    await updatePermissions.mutateAsync({
+      id: selectedAgent.id,
+      max_discount_percent: maxDiscountPercent,
+    });
+    setIsDiscountDialogOpen(false);
+    setSelectedAgent(null);
   };
 
   const getPerformanceColor = (current: number, target: number) => {
@@ -538,13 +556,26 @@ const AgentManagement = () => {
                           </Button>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Switch
-                            checked={agent.can_give_discounts}
-                            onCheckedChange={() =>
-                              handleTogglePermission(agent.id, 'can_give_discounts', agent.can_give_discounts)
-                            }
-                            disabled={!canManageAgents || !agent.is_active}
-                          />
+                          <div className="flex flex-col items-center gap-1">
+                            <Switch
+                              checked={agent.can_give_discounts}
+                              onCheckedChange={() =>
+                                handleTogglePermission(agent.id, 'can_give_discounts', agent.can_give_discounts)
+                              }
+                              disabled={!canManageAgents || !agent.is_active}
+                            />
+                            {agent.can_give_discounts && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-6 px-2 text-muted-foreground hover:text-primary"
+                                onClick={() => openDiscountDialog(agent)}
+                                disabled={!canManageAgents || !agent.is_active}
+                              >
+                                {language === 'en' ? 'Max' : 'حد أقصى'}: {agent.max_discount_percent || 10}%
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Switch
@@ -676,6 +707,52 @@ const AgentManagement = () => {
                 'Save Targets'
               ) : (
                 'حفظ الأهداف'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Max Discount Settings Dialog */}
+      <Dialog open={isDiscountDialogOpen} onOpenChange={setIsDiscountDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'en' ? 'Set Max Discount' : 'تحديد الحد الأقصى للخصم'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              {language === 'en' 
+                ? `Setting max discount for: ${selectedAgent?.name}`
+                : `تحديد الحد الأقصى للخصم لـ: ${selectedAgent?.name}`}
+            </p>
+            <div className="space-y-2">
+              <Label>{language === 'en' ? 'Max Discount Percentage (%)' : 'الحد الأقصى للخصم (%)'}</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={maxDiscountPercent}
+                onChange={(e) => setMaxDiscountPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === 'en' 
+                  ? 'The agent cannot apply a discount higher than this percentage.'
+                  : 'لا يمكن للمندوب تطبيق خصم أعلى من هذه النسبة.'}
+              </p>
+            </div>
+            <Button
+              onClick={handleUpdateMaxDiscount}
+              className="w-full"
+              disabled={updatePermissions.isPending}
+            >
+              {updatePermissions.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : language === 'en' ? (
+                'Save Max Discount'
+              ) : (
+                'حفظ الحد الأقصى'
               )}
             </Button>
           </div>
