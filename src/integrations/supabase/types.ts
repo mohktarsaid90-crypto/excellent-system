@@ -133,6 +133,7 @@ export type Database = {
           last_location_lat: number | null
           last_location_lng: number | null
           last_seen_at: string | null
+          max_discount_percent: number | null
           monthly_target: number | null
           name: string
           phone: string | null
@@ -155,6 +156,7 @@ export type Database = {
           last_location_lat?: number | null
           last_location_lng?: number | null
           last_seen_at?: string | null
+          max_discount_percent?: number | null
           monthly_target?: number | null
           name: string
           phone?: string | null
@@ -177,6 +179,7 @@ export type Database = {
           last_location_lat?: number | null
           last_location_lng?: number | null
           last_seen_at?: string | null
+          max_discount_percent?: number | null
           monthly_target?: number | null
           name?: string
           phone?: string | null

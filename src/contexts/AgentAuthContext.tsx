@@ -15,6 +15,7 @@ interface Agent {
   can_give_discounts: boolean;
   can_add_clients: boolean;
   can_process_returns: boolean;
+  max_discount_percent: number;
   is_active: boolean;
   credit_balance: number;
 }

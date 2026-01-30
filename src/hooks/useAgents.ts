@@ -15,6 +15,7 @@ export interface Agent {
   can_give_discounts: boolean;
   can_add_clients: boolean;
   can_process_returns: boolean;
+  max_discount_percent: number;
   is_active: boolean;
   is_online: boolean;
   last_location_lat: number | null;
@@ -237,16 +238,19 @@ export const useUpdateAgentPermissions = () => {
       can_give_discounts,
       can_add_clients,
       can_process_returns,
+      max_discount_percent,
     }: {
       id: string;
       can_give_discounts?: boolean;
       can_add_clients?: boolean;
       can_process_returns?: boolean;
+      max_discount_percent?: number;
     }) => {
       const updates: Partial<Agent> = {};
       if (can_give_discounts !== undefined) updates.can_give_discounts = can_give_discounts;
       if (can_add_clients !== undefined) updates.can_add_clients = can_add_clients;
       if (can_process_returns !== undefined) updates.can_process_returns = can_process_returns;
+      if (max_discount_percent !== undefined) updates.max_discount_percent = max_discount_percent;
 
       const { data, error } = await supabase
         .from('agents')
